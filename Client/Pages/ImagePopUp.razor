@@ -1,0 +1,39 @@
+@using Viewer.Shared
+@inject Cart Cart;
+
+<MudDialog>
+    <DialogContent>
+        @if (Source == null)
+        {
+            <span>An error occurred! Image source is null! Oh, no!</span>
+        }
+        else
+        {
+            <MudImage Fluid="true" Src="@Source.Url" Alt="The image you clicked on" loading="lazy"/>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Close">Cancel</MudButton>
+        <MudButton OnClick="@AddToCart">@AddOrRemoveMessage</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter] MudDialogInstance? MudDialogInstance { get; set; }
+    [Parameter] public ImageID? Source { get; set; }
+    private string AddOrRemoveMessage => Source is not null && Cart.Images.Contains(Source) ? "Remove from cart" : "Add to cart";
+
+    protected override void OnParametersSet()
+    {
+        StateHasChanged();
+    }
+
+    private void AddToCart()
+    {
+        Cart.AddOrRemove(Source);
+        MudDialogInstance!.Close(DialogResult.Ok(true));
+    }
+
+    private void Close() => MudDialogInstance!.Cancel();
+}

@@ -1,0 +1,44 @@
+﻿@inherits LayoutComponentBase
+@using Viewer.Client.Pages
+
+<MudThemeProvider IsDarkMode="true"/>
+<MudDialogProvider
+    Position="DialogPosition.Center"
+    CloseButton="true"
+    MaxWidth="MaxWidth.ExtraLarge"
+    CloseOnEscapeKey="true"
+    />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar>
+        <MudSpacer/>
+        <MudText Typo="Typo.h6">Family photos</MudText>
+        <MudSpacer/>
+        <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart"
+                       Color="Color.Inherit"
+                       @onclick="@ToggleCart"/>
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_navOpen" Anchor="Anchor.Left" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Mini">
+        <MudNavMenu>
+            <MudNavLink Icon="@Icons.Material.Filled.Home" Href="/">Home</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+    
+    <MudDrawer @bind-Open="@_cartOpen" Anchor="Anchor.Right" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Persistent">
+        <CartView />
+    </MudDrawer>
+    
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _cartOpen = true;
+    private bool _navOpen = true;
+
+    private void ToggleCart() => _cartOpen = !_cartOpen;
+}

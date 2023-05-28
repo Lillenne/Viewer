@@ -1,0 +1,38 @@
+.bouncer {
+    transition: all .2s ease-out;
+}
+
+.bouncer:hover {
+    transform: translateY(-10px);
+}
+
+.gray {
+    filter: grayscale(100%);
+}
+
+.gray-hover:hover{
+    transition: 0.2s;
+    filter: grayscale(30%);
+}
+
+.hidden-child-button { }
+
+.hidden-child-button:hover > .hover-button {
+    visibility: visible;
+}
+
+.hover-button {
+    visibility: hidden;
+}
+
+.container {
+    position: relative;
+    display: inline-block;
+}
+
+/*
+.container-child {
+    display: inline-block;
+    height: auto;
+}
+*/

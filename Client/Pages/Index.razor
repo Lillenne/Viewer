@@ -1,0 +1,66 @@
+﻿@page "/"
+@using Viewer.Shared
+@inject HttpClient Client
+
+<PageTitle>Index</PageTitle>
+
+@if (_images is null)
+{
+    <MudContainer MaxWidth="MaxWidth.False" Style="align-content: center">
+        <MudText Align="Align.Center">Are you sure there is anything here? If so, we are trying to find it. Hold tight...</MudText>
+        <MudProgressCircular Indeterminate="true"/>
+    </MudContainer>
+}
+else
+{
+    <MudGrid Justify="Justify.FlexStart">
+        <MudItem xs="3" sm="2" md="1" Class="mt-4" Style="display: inline;">
+            <MudTreeView T="DirectoryTreeItem" Hover="true" Items="_directories" ServerData="@LoadServerData">
+                <ItemTemplate Context="item">
+                    <MudTreeViewItem T="DirectoryTreeItem" 
+                                     CanExpand="@ItemHasChildren(item)" 
+                                     Icon="@Icons.Material.Filled.Folder" 
+                                     Text="@item.DirectoryName"
+                                     Value="@item"
+                                     @onclick="@(() => ChangeFolder(item.DirectoryName))">
+                    </MudTreeViewItem>
+                </ItemTemplate>
+            </MudTreeView>
+        </MudItem>
+        <MudItem xs="9" sm="10" md="11" Style="display: inline-block">
+            <Gallery Images="@_images"/>
+        </MudItem>
+    </MudGrid>
+}
+
+
+@code {
+    private IReadOnlyList<ImageID>? _images;
+    private HashSet<DirectoryTreeItem>? _directories;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tr = Client.PostAsJsonAsync("api/ImageAccess", new GetImagesRequest()); // TODO get with query parameters?
+        var tf = Client.GetFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>("api/ImageAccess/dirs");
+        _directories = (await tf.ConfigureAwait(false))?.ToHashSet();
+        var r = await tr.ConfigureAwait(false);
+        var resp = await r.Content.ReadFromJsonAsync<GetImagesResponse>();
+        _images = resp?.Images;
+    }
+
+    private async Task ChangeFolder(string directory)
+    {
+        var httpResponse = await Client.PostAsJsonAsync("api/ImageAccess", new GetImagesRequest() { Directory = directory }); /*Todo make api strings consts*/
+        var response = (await httpResponse.Content.ReadFromJsonAsync<GetImagesResponse>().ConfigureAwait(false));
+        _images = response?.Images;
+    }
+
+    private async Task<HashSet<DirectoryTreeItem>> LoadServerData(DirectoryTreeItem? arg)
+    {
+        var http = await Client.PostAsJsonAsync("api/ImageAccess/dirs", arg.DirectoryName);
+        var response = await http.Content.ReadFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>().ConfigureAwait(false);
+        return response?.ToHashSet() ?? new();
+    }
+
+    private bool ItemHasChildren(DirectoryTreeItem? value) => value?.HasSubDirectories ?? false;
+}

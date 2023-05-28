@@ -1,0 +1,33 @@
+@using Viewer.Shared
+@using _Imports = MudBlazor._Imports
+
+@inject Cart Cart;
+
+@if (!Cart.Images.Any())
+{
+    <span>There are no images in the cart!</span>
+}
+else
+{
+    @foreach (var item in Cart.Images)
+    {
+        <div style="margin: 10px;" class="gray-hover" @onclick="@(e => Clicked(e, item))">
+            <MudText>@item.Name</MudText>
+            <MudImage Fluid="true" Src="@item.Url" Class="rounded-lg"/>
+        </div>
+    }
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Cart.Images.CollectionChanged += (_, _) => StateHasChanged();
+        base.OnInitialized();
+    }
+
+    private void Clicked(MouseEventArgs obj, ImageID img)
+    {
+        if (obj.CtrlKey)
+            Cart.Images.Remove(img);
+    }
+}
