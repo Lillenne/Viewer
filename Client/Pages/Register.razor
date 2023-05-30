@@ -1,0 +1,53 @@
+@page "/register"
+@using Viewer.Shared.Dtos
+@inject IAuthClient Client
+@inject NavigationManager Nav
+
+<MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column align-items-center m-4">
+    <MudContainer MaxWidth="MaxWidth.Small">
+        <MudText Align="Align.Center" Typo="Typo.h6">Register</MudText>
+        <EditForm Model="@Info" OnValidSubmit="@DoRegister" class="align-items-center">
+            <DataAnnotationsValidator/>
+            <MudTextField InputType="InputType.Email" Variant="Variant.Text" Label="Email" Placeholder="email123@gmail.com" HelperText="Enter your email..." @bind-Value="Info.Email" For="() => Info.Email"/>
+            <MudTextField InputType="InputType.Text" Variant="Variant.Text" Label="Username" Placeholder="kool_cats62" HelperText="Enter your username..." @bind-Value="Info.Username" For="() => Info.Username"/>
+            <PasswordBox @bind-Value="@Info.Password" For="() => Info.Password"/>
+            <PasswordBox @bind-Value="@Info.ConfirmPassword" For="() => Info.ConfirmPassword"/>
+            <MudContainer Class="d-flex flex-row justify-content-evenly mt-4 mb-4">
+                <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Reset">Reset</MudButton>
+                <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Submit</MudButton>
+            </MudContainer>
+            <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-row">
+            </MudContainer>
+        </EditForm>
+        @if (_failed)
+        {
+            <MudText Align="Align.Center" Color="Color.Error" Typo="Typo.body1">Registration failed!</MudText>
+        }
+        @if (_registered)
+        {
+            <MudText Typo="Typo.h6" Color="Color.Success">Welcome!</MudText>
+        }
+    </MudContainer>
+</MudContainer>
+@code {
+    private UserRegistrationModel Info { get; set; } = new();
+    private bool _registered;
+    private bool _failed;
+
+    private async Task DoRegister()
+    {
+        _registered = await Client.Register(new UserRegistration()
+        {
+            Username = Info.Username,
+            Password = Info.Password,
+            Email = Info.Email
+        });
+        if (!_registered)
+        {
+            _failed = true;
+            return;
+        }
+        _failed = false;
+        Nav.NavigateTo(Routes.Home);
+    }
+}

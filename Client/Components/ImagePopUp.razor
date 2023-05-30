@@ -5,7 +5,7 @@
     <DialogContent>
         @if (Source == null)
         {
-            <span>An error occurred! Image source is null! Oh, no!</span>
+            <MudText Typo="Typo.h6" Color="Color.Error">An error occurred. Please try again later.</MudText>
         }
         else
         {
@@ -21,7 +21,7 @@
 
 @code {
     [CascadingParameter] MudDialogInstance? MudDialogInstance { get; set; }
-    [Parameter] public ImageID? Source { get; set; }
+    [Parameter] public ImageId? Source { get; set; }
     private string AddOrRemoveMessage => Source is not null && Cart.Images.Contains(Source) ? "Remove from cart" : "Add to cart";
 
     protected override void OnParametersSet()

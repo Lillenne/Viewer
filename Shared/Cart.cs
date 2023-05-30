@@ -5,9 +5,9 @@ namespace Viewer.Shared;
 
 public class Cart
 {
-    public ObservableCollection<ImageID> Images { get; } = new();
+    public ObservableCollection<ImageId> Images { get; } = new();
 
-    public void AddOrRemove(ImageID? img)
+    public void AddOrRemove(ImageId? img)
     {
         if (img is null)
             return;
@@ -16,6 +16,4 @@ public class Cart
         else
             Images.Remove(img);
     }
-    
-    
 }

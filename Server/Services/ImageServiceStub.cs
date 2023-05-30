@@ -1,12 +1,13 @@
 using Viewer.Shared;
+using Viewer.Shared.Requests;
 
-namespace Viewer.Server;
+namespace Viewer.Server.Services;
 
 public class ImageServiceStub : IImageService
 {
     public Task<GetImagesResponse> GetImages(GetImagesRequest request)
     {
-        var img = new ImageID
+        var img = new ImageId
         {
             Guid = new Guid(),
             Name = "Random image",
@@ -14,11 +15,11 @@ public class ImageServiceStub : IImageService
                 @"https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png"
         };
         var imgs = Enumerable.Range(0, 20).Select(i => img).ToList();
-        var result = new GetImagesResponse() { Images = imgs};
+        var result = new GetImagesResponse() { Images = imgs };
         return Task.FromResult(result);
     }
 
-    public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string dir)
+    public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? dir)
     {
         var ti = new DirectoryTreeItem
         {

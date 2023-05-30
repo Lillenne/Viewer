@@ -40,7 +40,7 @@
 </div>
 
 @code {
-    [Parameter] public IEnumerable<ImageID>? Images { get; set; }
+    [Parameter] public IEnumerable<ImageId>? Images { get; set; }
 
     [Parameter]
     public int Width { get; set; } = 300;
@@ -50,7 +50,7 @@
         Cart.Images.CollectionChanged += (_, _) => StateHasChanged();
     }
 
-    private void OnClick(ImageID img, MouseEventArgs args)
+    private void OnClick(ImageId img, MouseEventArgs args)
     {
         if (args.CtrlKey)
         {
@@ -62,9 +62,9 @@
         }
     }
 
-    private string GetStyle(ImageID img) => Cart.Images.Contains(img) ? "filter: grayscale(30%);" : string.Empty;
+    private string GetStyle(ImageId img) => Cart.Images.Contains(img) ? "filter: grayscale(30%);" : string.Empty;
 
-    private void CreatePopUp(ImageID img)
+    private void CreatePopUp(ImageId img)
     {
         var opts = new DialogOptions() { CloseOnEscapeKey = true };
         var parameters = new DialogParameters();
@@ -72,16 +72,16 @@
         DialogService.Show<ImagePopUp>(img.Name, parameters, opts);
     }
 
-    private void AddToOrRemoveFromCart(ImageID? img) => Cart.AddOrRemove(img);
+    private void AddToOrRemoveFromCart(ImageId? img) => Cart.AddOrRemove(img);
 
-    private string GetIcon(ImageID img) => 
+    private string GetIcon(ImageId img) => 
         Cart.Images.Contains(img) ? Icons.Material.Filled.HorizontalRule : Icons.Material.Filled.Add;
 
-    private string? GetCheckMarkStyle(ImageID img)
+    private string? GetCheckMarkStyle(ImageId img)
     {
         var vis = Cart.Images.Contains(img) ? "visible" : "hidden";
         return $"z-index: 1; position: absolute; right: 10%; top: 5%; visibility: {vis}";
     }
 
-    private int GetCheckWidth(ImageID img) => int.CreateSaturating(Width * 0.1);
+    private int GetCheckWidth(ImageId img) => int.CreateSaturating(Width * 0.1);
 }

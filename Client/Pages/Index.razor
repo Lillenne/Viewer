@@ -1,11 +1,27 @@
 ﻿@page "/"
 @using Viewer.Shared
-@inject HttpClient Client
+@using Viewer.Shared.Requests
+@using Viewer.Client.ServiceClients
+@inject IImageClient ImageClient
 
 <PageTitle>Index</PageTitle>
 
+<AuthorizeView>
+    <NotAuthorized>
+        <MudText Class="m-4" Typo="Typo.body1">
+            To see more than just sample images, please 
+            <MudLink Class="d-inline-block" Href="@Routes.Login">
+                <MudText Class="d-inline-block" Typo="Typo.body1">
+                    login
+                </MudText>
+            </MudLink>.
+        </MudText>
+    </NotAuthorized>
+</AuthorizeView>
+
 @if (_images is null)
 {
+    /* TODO error text variable, align progress bar center*/
     <MudContainer MaxWidth="MaxWidth.False" Style="align-content: center">
         <MudText Align="Align.Center">Are you sure there is anything here? If so, we are trying to find it. Hold tight...</MudText>
         <MudProgressCircular Indeterminate="true"/>
@@ -14,20 +30,27 @@
 else
 {
     <MudGrid Justify="Justify.FlexStart">
-        <MudItem xs="3" sm="2" md="1" Class="mt-4" Style="display: inline;">
-            <MudTreeView T="DirectoryTreeItem" Hover="true" Items="_directories" ServerData="@LoadServerData">
-                <ItemTemplate Context="item">
-                    <MudTreeViewItem T="DirectoryTreeItem" 
-                                     CanExpand="@ItemHasChildren(item)" 
-                                     Icon="@Icons.Material.Filled.Folder" 
-                                     Text="@item.DirectoryName"
-                                     Value="@item"
-                                     @onclick="@(() => ChangeFolder(item.DirectoryName))">
-                    </MudTreeViewItem>
-                </ItemTemplate>
-            </MudTreeView>
+        <MudItem xs="3" sm="2" Class="mt-4" Style="display: inline;">
+            <MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column">
+                <MudText Align="Align.Center" Typo="Typo.h6">Notes:</MudText>
+                <MudList>
+                    <MudListItem Text="Click for a preview" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
+                    <MudListItem Text="Ctrl + click to bookmark" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
+                    <MudListItem Text="Use the folder view to navigate" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
+                </MudList>
+                <MudTreeView T="DirectoryTreeItem" Hover="true" Items="_directories" ServerData="@LoadServerData" @bind-SelectedValue="@SelectedDirectory">
+                    <ItemTemplate Context="item">
+                        <MudTreeViewItem T="DirectoryTreeItem"
+                                         CanExpand="@ItemHasChildren(item)"
+                                         Icon="@Icons.Material.Filled.Folder"
+                                         Text="@item.DirectoryName"
+                                         Value="@item">
+                        </MudTreeViewItem>
+                    </ItemTemplate>
+                </MudTreeView>
+            </MudContainer>
         </MudItem>
-        <MudItem xs="9" sm="10" md="11" Style="display: inline-block">
+        <MudItem xs="9" sm="10" Style="display: inline-block">
             <Gallery Images="@_images"/>
         </MudItem>
     </MudGrid>
@@ -35,32 +58,81 @@ else
 
 
 @code {
-    private IReadOnlyList<ImageID>? _images;
-    private HashSet<DirectoryTreeItem>? _directories;
+    private IReadOnlyList<ImageId>? _images;
+    private System.Collections.Generic.HashSet<DirectoryTreeItem>? _directories;
+    private DirectoryTreeItem? _selectedDir;
+
+    private DirectoryTreeItem? SelectedDirectory
+    {
+        get => _selectedDir;
+        set
+        {
+            _selectedDir = value;
+            ChangeFolder(value);
+        }
+    }
+    [CascadingParameter] public Task<AuthenticationState>? AuthState { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        var tr = Client.PostAsJsonAsync("api/ImageAccess", new GetImagesRequest()); // TODO get with query parameters?
-        var tf = Client.GetFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>("api/ImageAccess/dirs");
-        _directories = (await tf.ConfigureAwait(false))?.ToHashSet();
-        var r = await tr.ConfigureAwait(false);
-        var resp = await r.Content.ReadFromJsonAsync<GetImagesResponse>();
-        _images = resp?.Images;
+        var dirs = (await ImageClient.GetSubDirectories());
+        dirs.IfSucc(f =>
+        {
+            _directories = f.ToHashSet();
+            SelectedDirectory = f.First();
+        });
+        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = SelectedDirectory?.DirectoryName });
+        imgs.IfSucc(im => _images = im);
+    /*
+        // TODO auth-state related logic 
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            if (state.User.Identity?.Name.Equals(GuestCredentials.Username, StringComparison.OrdinalIgnoreCase) ?? true)
+            {
+                // TODO get sample images
+            }
+        }
+        else
+        {
+            var tf = Client.GetFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>("api/ImageAccess/dirs");
+            _directories = (await tf.ConfigureAwait(false))?.ToHashSet();
+            var r = await tr.ConfigureAwait(false);
+            var resp = await r.Content.ReadFromJsonAsync<GetImagesResponse>();
+            _images = resp?.Images;
+        }
+    */
     }
 
-    private async Task ChangeFolder(string directory)
+    private async Task ChangeFolder(DirectoryTreeItem? value)
     {
-        var httpResponse = await Client.PostAsJsonAsync("api/ImageAccess", new GetImagesRequest() { Directory = directory }); /*Todo make api strings consts*/
-        var response = (await httpResponse.Content.ReadFromJsonAsync<GetImagesResponse>().ConfigureAwait(false));
-        _images = response?.Images;
+        if (value is null)
+        {
+            _images = Array.Empty<ImageId>();
+            return;
+        }
+        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = value.DirectoryName });
+        _images = imgs.Match<IReadOnlyList<ImageId>>(i => i, Array.Empty<ImageId>, e =>
+        {
+    // TODO show popup error?
+            return Array.Empty<ImageId>();
+        });
     }
 
-    private async Task<HashSet<DirectoryTreeItem>> LoadServerData(DirectoryTreeItem? arg)
+    private async Task<System.Collections.Generic.HashSet<DirectoryTreeItem>> LoadServerData(DirectoryTreeItem? arg)
     {
-        var http = await Client.PostAsJsonAsync("api/ImageAccess/dirs", arg.DirectoryName);
-        var response = await http.Content.ReadFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>().ConfigureAwait(false);
-        return response?.ToHashSet() ?? new();
+        var dirs = (await ImageClient.GetSubDirectories(arg?.DirectoryName));
+        return dirs.Match(
+            some => some.ToHashSet(),
+            () => new(),
+            DoDirErr);
     }
 
-    private bool ItemHasChildren(DirectoryTreeItem? value) => value?.HasSubDirectories ?? false;
+    private System.Collections.Generic.HashSet<DirectoryTreeItem> DoDirErr(Exception arg)
+    {
+        // TODO show popup
+        return new();
+    }
+
+    private static bool ItemHasChildren(DirectoryTreeItem? value) => value?.HasSubDirectories ?? false;
 }

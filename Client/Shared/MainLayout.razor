@@ -1,5 +1,4 @@
 ﻿@inherits LayoutComponentBase
-@using Viewer.Client.Pages
 
 <MudThemeProvider IsDarkMode="true"/>
 <MudDialogProvider
@@ -19,9 +18,11 @@
                        Color="Color.Inherit"
                        @onclick="@ToggleCart"/>
     </MudAppBar>
-    <MudDrawer @bind-Open="@_navOpen" Anchor="Anchor.Left" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Mini">
+    <MudDrawer Anchor="Anchor.Left" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Mini">
         <MudNavMenu>
-            <MudNavLink Icon="@Icons.Material.Filled.Home" Href="/">Home</MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.Home" Href="@Routes.Home">Home</MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.Login" Href="@Routes.Login">Login</MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.AppRegistration" Href="@Routes.Register">Register</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
     
@@ -38,7 +39,6 @@
 
 @code {
     private bool _cartOpen = true;
-    private bool _navOpen = true;
 
     private void ToggleCart() => _cartOpen = !_cartOpen;
 }

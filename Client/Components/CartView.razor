@@ -1,11 +1,10 @@
 @using Viewer.Shared
-@using _Imports = MudBlazor._Imports
 
 @inject Cart Cart;
 
 @if (!Cart.Images.Any())
 {
-    <span>There are no images in the cart!</span>
+    <MudText Align="Align.Center" Typo="Typo.body1">There are no images in the cart!</MudText> 
 }
 else
 {
@@ -25,7 +24,7 @@ else
         base.OnInitialized();
     }
 
-    private void Clicked(MouseEventArgs obj, ImageID img)
+    private void Clicked(MouseEventArgs obj, ImageId img)
     {
         if (obj.CtrlKey)
             Cart.Images.Remove(img);
