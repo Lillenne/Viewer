@@ -7,12 +7,6 @@ public static class Routes
     public const string Home = "/";
 }
 
-public static class GuestCredentials
-{
-    public const string Username = "GuestViewer";
-    public const string Password = "Password123";
-}
-
 public static class ApiRoutes
 {
     public static class Auth

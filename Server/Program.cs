@@ -40,7 +40,7 @@ builder.Services.AddCors(o => o.AddPolicy("local",
     
 builder.Services.AddScoped<Cart>();
 builder.Services.AddSingleton<IImageService, ImageServiceStub>();
-builder.Services.AddSingleton<IAuthService, AuthServiceStub>();
+builder.Services.AddSingleton<IAuthService, JwtAuthService>();
 
 var app = builder.Build();
 

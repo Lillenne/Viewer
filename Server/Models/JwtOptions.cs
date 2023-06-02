@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Viewer.Server.Controllers;
 
@@ -9,7 +11,7 @@ public class JwtOptions
     public string Audience { get; set; } = string.Empty;
     public string Key { get; set; } = string.Empty;
     public int ExpiryTimeMinutes { get; set; }
-    public string HashAlgorithm { get; set; } = "HmacSha256Signature";
-    public byte[] KeyBytesUtf8 => _keyBytesUtf8 ??= Encoding.UTF8.GetBytes(Key);
-    private byte[]? _keyBytesUtf8;
+    public string HashAlgorithm { get; set; } = SecurityAlgorithms.HmacSha256Signature;
+    public byte[] KeyBytes => _keyBytes ??= Encoding.UTF8.GetBytes(Key);
+    private byte[]? _keyBytes;
 }

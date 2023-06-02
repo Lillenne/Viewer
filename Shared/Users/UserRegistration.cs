@@ -12,4 +12,9 @@ public class UserRegistration
     
     [Required, StringLength(100, MinimumLength = 6)] 
     public required string Password { get; init; }
+
+    public string FirstName { get; set; } = string.Empty;
+
+    public string LastName { get; set; } = string.Empty;
+
 }

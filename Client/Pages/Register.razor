@@ -8,8 +8,10 @@
         <MudText Align="Align.Center" Typo="Typo.h6">Register</MudText>
         <EditForm Model="@Info" OnValidSubmit="@DoRegister" class="align-items-center">
             <DataAnnotationsValidator/>
-            <MudTextField InputType="InputType.Email" Variant="Variant.Text" Label="Email" Placeholder="email123@gmail.com" HelperText="Enter your email..." @bind-Value="Info.Email" For="() => Info.Email"/>
-            <MudTextField InputType="InputType.Text" Variant="Variant.Text" Label="Username" Placeholder="kool_cats62" HelperText="Enter your username..." @bind-Value="Info.Username" For="() => Info.Username"/>
+            <MudTextField InputType="InputType.Email" Variant="Variant.Text" Label="Email" Placeholder="email123@gmail.com" HelperText="Enter your email..." @bind-Value="@Info.Email" For="() => Info.Email"/>
+            <MudTextField InputType="InputType.Text" Variant="Variant.Text" Label="First name" Placeholder="Jane" HelperText="Enter your first name..." @bind-Value="@Info.FirstName" For="() => Info.FirstName"/>
+            <MudTextField InputType="InputType.Text" Variant="Variant.Text" Label="Last name" Placeholder="Doe" HelperText="Enter your last name..." @bind-Value="@Info.LastName" For="() => Info.LastName"/>
+            <MudTextField InputType="InputType.Text" Variant="Variant.Text" Label="Username" Placeholder="kool_cats62" HelperText="Enter your username..." @bind-Value="@Info.Username" For="() => Info.Username"/>
             <PasswordBox @bind-Value="@Info.Password" For="() => Info.Password"/>
             <PasswordBox @bind-Value="@Info.ConfirmPassword" For="() => Info.ConfirmPassword"/>
             <MudContainer Class="d-flex flex-row justify-content-evenly mt-4 mb-4">
@@ -40,6 +42,8 @@
         {
             Username = Info.Username,
             Password = Info.Password,
+            FirstName = Info.FirstName,
+            LastName = Info.LastName,
             Email = Info.Email
         });
         if (!_registered)
