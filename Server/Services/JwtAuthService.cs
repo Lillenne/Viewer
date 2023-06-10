@@ -16,10 +16,12 @@ namespace Viewer.Server.Services;
 
 public class JwtAuthService : IAuthService
 {
+    private readonly IUserRepository _repo;
     private readonly JwtOptions _jwt;
 
-    public JwtAuthService(IOptions<JwtOptions> options) // TODO hook up DB
+    public JwtAuthService(IOptions<JwtOptions> options, IUserRepository repo) // TODO hook up DB
     {
+        _repo = repo;
         _jwt = options.Value;
     }
 
@@ -28,12 +30,10 @@ public class JwtAuthService : IAuthService
         if (string.IsNullOrEmpty(userLogin.Username))
             return new Result<AuthToken>(new ArgumentException("Username required"));
         var user = await GetUserInformation(userLogin.Username);
-        /*
         if (!VerifyPassword(userLogin.Password, user.PasswordHash, user.PasswordSalt))
         {
             return new Result<AuthToken>(new ArgumentException("Incorrect password"));
         }
-        */
         var token = CreateToken(user);
         return new Result<AuthToken>(new AuthToken(token));
     }
@@ -48,10 +48,12 @@ public class JwtAuthService : IAuthService
         return await SaveUser(user);
     }
 
-    private static Task<Result<bool>> SaveUser(User user)
+    // Todo change sig
+    private async Task<Result<bool>> SaveUser(User user)
     {
         // TODO 
-        return Task.FromResult<Result<bool>>(true);
+        await _repo.AddUser(user);
+        return true;
     }
 
     public async Task<Result<bool>> Register(UserRegistration info)
@@ -114,12 +116,13 @@ public class JwtAuthService : IAuthService
         return jwt;
     }
 
-    // TODO
-    private Task<User> GetUserInformation(string username) => GetUserInformation(Guid.Empty);
+    private Task<User> GetUserInformation(string username) => _repo.GetUserByUsername(username);
 
     // TODO
-    private async Task<User> GetUserInformation(Guid userId)
+    private Task<User> GetUserInformation(Guid userId)
     {
+        return _repo.GetUserById(userId);
+        /*
         // TODO
         return new User
         {
@@ -145,5 +148,6 @@ public class JwtAuthService : IAuthService
                 }
             }
         };
+    */
     }
 }

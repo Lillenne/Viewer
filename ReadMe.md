@@ -7,7 +7,7 @@
 ### Roadmap
 * ~~Image viewer UI~~ &rarr; Completed 5/29/23
 * Jwt Authentication &rarr; Completed 6/2/23
-* User credential database
+* User credential database &rarr; Completed 6/2/23
   * Registration return urls
 * Image server implementation 1 (app local file system)
   * Serve
@@ -16,6 +16,9 @@
 * User groups and photo view/share permissions
   * Roles (Authorization)
 * Configure hosting & First release
+* Telemetry
+  * Track site access patterns
+  * Track what images are downloaded
 * Image server implementation 2 (likely self-hosted MinIO)
     * Serve
     * Download

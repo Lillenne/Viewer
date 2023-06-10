@@ -41,6 +41,7 @@ builder.Services.AddCors(o => o.AddPolicy("local",
 builder.Services.AddScoped<Cart>();
 builder.Services.AddSingleton<IImageService, ImageServiceStub>();
 builder.Services.AddSingleton<IAuthService, JwtAuthService>();
+builder.Services.AddSingleton<IUserRepository, UserContext>();
 
 var app = builder.Build();
 
@@ -54,6 +55,12 @@ else
     app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<IUserRepository>() as UserContext;
+    db?.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();
