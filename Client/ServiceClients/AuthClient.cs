@@ -31,7 +31,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
             return false;
         
         await StoreToken(token);
-        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        NotifyAuthStateChanged();
         return true;
     }
 
@@ -55,6 +55,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
             return GuestState;
         var token = await _storage.GetItemAsStringAsync(JwtKey).ConfigureAwait(false);
         var jwt = new JwtSecurityToken(token);
+        // TODO expiration?
         var identity = new ClaimsIdentity(jwt.Claims, "Authorized");
         var principal = new ClaimsPrincipal(identity);
         return new AuthenticationState(principal);
@@ -63,6 +64,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     private const string JwtKey = "jwt";
 
     private static AuthenticationState GuestState { get; } = GetGuestState();
+
     private static AuthenticationState GetGuestState()
     {
         var claims = new List<Claim> { new(ClaimTypes.Name, "Guest") };
@@ -70,5 +72,22 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
         var principal = new ClaimsPrincipal(id);
         var state = new AuthenticationState(principal);
         return state;
+    }
+
+    public async Task<bool> GetIsLoggedIn()
+    {
+        // TODO expiry
+        return (await _storage.GetItemAsStringAsync(JwtKey, default).ConfigureAwait(false)) is not null;
+    }
+    
+    public async Task SignOut()
+    {
+        await _storage.RemoveItemAsync(JwtKey, default);
+        NotifyAuthStateChanged();
+    }
+    
+    private void NotifyAuthStateChanged()
+    {
+        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
 }

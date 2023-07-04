@@ -3,41 +3,58 @@ using LanguageExt;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server.Models;
 
-namespace Viewer.Server.Services;
-
-public class UserContext : DbContext, IUserRepository
+namespace Viewer.Server.Services
 {
-    public DbSet<User> Users { get; set; }
-
-    public UserContext(IConfiguration configuration)
+    public class UserContext : DbContext, IUserRepository
     {
-        _connection = configuration.GetConnectionString("viewer_users");
-    }
+        public DbSet<User> Users { get; set; }
 
-    private readonly string? _connection;
+        public UserContext(IConfiguration configuration)
+        {
+            _connection = configuration.GetConnectionString("viewer_users");
+        }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseNpgsql(_connection);
-    
-    public Task<User> GetUserById(Guid id) => Users.FirstAsync(u => u.Id == id);
+        private readonly string? _connection;
 
-    public Task<User> GetUserByUsername(string username)
-    {
-        Guard.IsNotNull(username);
-        //return Users.FirstAsync(u => 0 == string.Compare(u.UserName, username, StringComparison.InvariantCultureIgnoreCase));
-        var res = Users.AsEnumerable().FirstOrDefault(u => 0 == string.Compare(u.UserName, username, StringComparison.InvariantCultureIgnoreCase));
-        return Task.FromResult(res);
-    }
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            _ = optionsBuilder.UseNpgsql(_connection);
+        }
 
-    public IAsyncEnumerable<User> GetAllUsers() => Users.AsAsyncEnumerable();
+        public Task<User> GetUserById(Guid id)
+        {
+            return Users.FirstAsync(u => u.Id == id);
+        }
 
-    public async Task AddUser(User user)
-    {
-        var option = await Users.FirstOrDefaultAsync(u => u.Id == user.Id);
-        if (option is null)
-            Users.Add(user);
-        else
-            Users.Update(user);
-        
-        await SaveChangesAsync();
+        public Task<User> GetUserByUsername(string username)
+        {
+            Guard.IsNotNull(username);
+            User res = Users
+                .AsEnumerable()
+                .First(
+                    u => string.Equals(u.UserName, username, StringComparison.OrdinalIgnoreCase)
+                );
+            return Task.FromResult(res);
+        }
+
+        public IAsyncEnumerable<User> GetAllUsers()
+        {
+            return Users.AsAsyncEnumerable();
+        }
+
+        public async Task AddUser(User user)
+        {
+            User? option = await Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+            if (option is null)
+            {
+                _ = Users.Add(user);
+            }
+            else
+            {
+                _ = Users.Update(user);
+            }
+
+            _ = await SaveChangesAsync();
+        }
     }
 }

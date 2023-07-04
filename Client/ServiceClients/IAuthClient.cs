@@ -11,4 +11,6 @@ public interface IAuthClient
     Task<bool> Login(UserLogin login);
     Task<bool> ChangePassword(ChangePasswordRequest request);
     Task<bool> Register(UserRegistration info);
+    Task<bool> GetIsLoggedIn();
+    Task SignOut();
 } 

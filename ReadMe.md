@@ -6,9 +6,9 @@
 
 ### Roadmap
 * ~~Image viewer UI~~ &rarr; Completed 5/29/23
-* Jwt Authentication &rarr; Completed 6/2/23
-* User credential database &rarr; Completed 6/2/23
-  * Registration return urls
+* ~~Jwt Authentication~~ &rarr; Completed 6/2/23
+* ~~User credential database~~ &rarr; Completed 6/2/23
+  * ~~Registration return urls~~ &rarr; Completed 7/3/23
 * Image server implementation 1 (app local file system)
   * Serve
   * Download

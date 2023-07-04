@@ -1,4 +1,5 @@
 @page "/login"
+@page "/login/{ReturnUri}"
 @using Viewer.Shared
 @using LanguageExt.Common
 @using LanguageExt
@@ -45,15 +46,14 @@
 
 @code {
     [CascadingParameter] public AuthenticationState? AuthenticationState { get; set; }
+    [Parameter] public string? ReturnUri { get; set;}
     private UserLogin Info { get; set; } = new();
     private bool _loggedIn;
     private bool _failed;
     
     protected override async Task OnInitializedAsync()
     {
-        // TODO query api if logged in
-        // TODO return uri
-        _loggedIn = false;
+        _loggedIn = await Auth.GetIsLoggedIn();
     }
 
     private async Task DoLogin(EditContext obj)
@@ -69,7 +69,7 @@
     {
         _loggedIn = true;
         _failed = false;
-        Nav.NavigateTo(Routes.Home);
+        Nav.NavigateTo(ReturnUri ?? Routes.Home);
     }
 
     private void DoFailedLogin()

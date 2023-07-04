@@ -5,8 +5,9 @@ public static class Routes
     public const string Login = "/login";
     public const string Register = "/register";
     public const string Home = "/";
-}
 
+    public static string GetLoginWithReturnUri(string returnUri) => $"{Login}/{returnUri}";
+}
 public static class ApiRoutes
 {
     public static class Auth
