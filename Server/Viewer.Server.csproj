@@ -28,5 +28,9 @@
     <ProjectReference Include="..\Shared\Viewer.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Pictures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 
 </Project>

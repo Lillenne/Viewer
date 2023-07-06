@@ -48,7 +48,8 @@ builder.Services.AddCors(
 );
 
 builder.Services.AddScoped<Cart>();
-builder.Services.AddSingleton<IImageService, MinioImageService>();
+builder.Services.AddSingleton<IImageService, AppFileImageService>();
+//builder.Services.AddSingleton<IImageService, MinioImageService>();
 //builder.Services.AddSingleton<IImageService, ImageServiceStub>();
 builder.Services.AddSingleton<IAuthService, JwtAuthService>();
 builder.Services.AddSingleton<IUserRepository, UserContext>();

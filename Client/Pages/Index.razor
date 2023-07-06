@@ -97,7 +97,7 @@ else
         dirs.IfSucc(f =>
         {
             _directories = f.ToHashSet();
-            SelectedDirectory = f.First();
+            SelectedDirectory = f.FirstOrDefault();
         });
         var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = SelectedDirectory?.DirectoryName, Width=Width});
         imgs.IfSucc(im => Images = im);

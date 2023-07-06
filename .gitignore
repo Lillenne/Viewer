@@ -476,3 +476,5 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 Client/.vscode/settings.json
+Client/wwwroot/Pictures/
+Server/Pictures/
