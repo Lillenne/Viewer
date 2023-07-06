@@ -1,10 +1,9 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
-using Viewer.Server;
 using Viewer.Server.Controllers;
 using Viewer.Server.Services;
+using Viewer.Server.Models;
 using Viewer.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,7 +14,9 @@ var config = builder.Configuration;
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.Configure<JwtOptions>(config.GetSection("JwtSettings"));
-builder.Services.AddAuthentication(o =>
+builder.Services.Configure<MinioOptions>(config.GetSection("Minio"));
+builder.Services
+    .AddAuthentication(o =>
     {
         o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         o.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -25,7 +26,9 @@ builder.Services.AddAuthentication(o =>
     {
         o.TokenValidationParameters = new TokenValidationParameters()
         {
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JwtSettings:Key"]!)),
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(config["JwtSettings:Key"]!)
+            ),
             ValidIssuer = config["JwtSettings:Issuer"],
             ValidAudience = config["JwtSettings:Audience"],
             ValidateIssuer = false, // TODO
@@ -35,11 +38,18 @@ builder.Services.AddAuthentication(o =>
         };
     });
 builder.Services.AddAuthorization();
-builder.Services.AddCors(o => o.AddPolicy("local",
-    policy => policy.WithOrigins("http://localhost*").AllowAnyMethod().AllowAnyHeader()));
-    
+builder.Services.AddCors(
+    o =>
+        o.AddPolicy(
+            "local",
+            //policy => policy.WithOrigins("http://localhost*").AllowAnyMethod().AllowAnyHeader()
+            policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()
+        )
+);
+
 builder.Services.AddScoped<Cart>();
-builder.Services.AddSingleton<IImageService, ImageServiceStub>();
+builder.Services.AddSingleton<IImageService, MinioImageService>();
+//builder.Services.AddSingleton<IImageService, ImageServiceStub>();
 builder.Services.AddSingleton<IAuthService, JwtAuthService>();
 builder.Services.AddSingleton<IUserRepository, UserContext>();
 
@@ -71,7 +81,6 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 app.MapRazorPages();
 app.MapControllers();

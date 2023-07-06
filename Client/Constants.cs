@@ -6,7 +6,10 @@ public static class Routes
     public const string Register = "/register";
     public const string Home = "/";
 
-    public static string GetLoginWithReturnUri(string returnUri) => $"{Login}/{returnUri}";
+    public static string GetLoginWithReturnUri(string returnUri)
+    {
+        return $"{Login}/{returnUri}";
+    }
 }
 public static class ApiRoutes
 {
@@ -21,6 +24,7 @@ public static class ApiRoutes
     public static class ImageAccess
     {
         public const string Base = "api/ImageAccess/";
+        public const string Image = $"{Base}image";
         public const string Dirs = $"{Base}dirs";
     }
 }

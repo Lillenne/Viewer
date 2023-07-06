@@ -18,6 +18,9 @@
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="6.30.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.4" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.30.1" />
+
+    <PackageReference Include="Minio" Version="4.0.7" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>

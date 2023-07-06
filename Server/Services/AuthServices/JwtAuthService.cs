@@ -19,7 +19,7 @@ public class JwtAuthService : IAuthService
     private readonly IUserRepository _repo;
     private readonly JwtOptions _jwt;
 
-    public JwtAuthService(IOptions<JwtOptions> options, IUserRepository repo) // TODO hook up DB
+    public JwtAuthService(IOptions<JwtOptions> options, IUserRepository repo)
     {
         _repo = repo;
         _jwt = options.Value;

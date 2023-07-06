@@ -31,6 +31,19 @@ public class ImageAccessController : ControllerBase
         return Get(request);
     }
 
+    [HttpPost("image")]
+    public async Task<ActionResult<ImageId>> Image(GetImageRequest request)
+    {
+        try
+        {
+            return new ActionResult<ImageId>(await _service.GetImage(request).ConfigureAwait(false));
+        }
+        catch
+        {
+            return NotFound();
+        }
+    }
+
     [HttpPost("dirs")]
     public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> PostDirectories([FromBody] string? dir)
     {

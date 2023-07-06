@@ -12,5 +12,11 @@ public class GetImagesRequest
     public bool Recursive { get; init; }
     public int Width { get; init; }
     public int Height { get; init; }
-    public bool PreserveAspectRatio { get; init; }
+}
+
+public class GetImageRequest
+{
+    public int Width { get; init; }
+    public int Height { get; init; }
+    public string Name { get; init; }
 }

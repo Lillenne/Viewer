@@ -25,7 +25,7 @@
     </NotAuthorized>
 </AuthorizeView>
 
-@if (_images is null)
+@if (Images is null)
 {
     /* TODO error text variable, align progress bar center*/
     <MudContainer MaxWidth="MaxWidth.False" Style="align-content: center">
@@ -57,17 +57,26 @@ else
             </MudContainer>
         </MudItem>
         <MudItem xs="9" sm="10" Style="display: inline-block">
-            <Gallery Images="@_images"/>
+            <Gallery Images="@Images"/>
+            @* <Gallery Images="@_images"/> *@
         </MudItem>
     </MudGrid>
 }
 
 
 @code {
+    private int Width => 256; //TODO calculate
     private async Task<string?> GetName() => AuthState is null ? null 
         : (await AuthState).User.Claims
             .FirstOrDefault(n => n.Type.Equals("name", StringComparison.InvariantCultureIgnoreCase))?.Value;
     private IReadOnlyList<ImageId>? _images;
+    private IReadOnlyList<ImageId>? Images {
+        get => _images;
+        set 
+        {
+            _images = value;
+            StateHasChanged();
+        }}
     private System.Collections.Generic.HashSet<DirectoryTreeItem>? _directories;
     private DirectoryTreeItem? _selectedDir;
 
@@ -90,8 +99,8 @@ else
             _directories = f.ToHashSet();
             SelectedDirectory = f.First();
         });
-        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = SelectedDirectory?.DirectoryName });
-        imgs.IfSucc(im => _images = im);
+        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = SelectedDirectory?.DirectoryName, Width=Width});
+        imgs.IfSucc(im => Images = im);
     /*
         // TODO auth-state related logic 
         if (AuthState is not null)
@@ -117,11 +126,11 @@ else
     {
         if (value is null)
         {
-            _images = Array.Empty<ImageId>();
+            Images = Array.Empty<ImageId>();
             return;
         }
-        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = value.DirectoryName });
-        _images = imgs.Match<IReadOnlyList<ImageId>>(i => i, Array.Empty<ImageId>, e =>
+        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = value.DirectoryName, Width = Width });
+        Images = imgs.Match<IReadOnlyList<ImageId>>(i => i, Array.Empty<ImageId>, e =>
         {
     // TODO show popup error?
             return Array.Empty<ImageId>();
