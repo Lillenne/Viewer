@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using Viewer.Server.Models;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
+using Viewer.Shared.Services;
 
 namespace Viewer.Server.Services;
 
@@ -114,6 +115,40 @@ public class MinioImageService : IImageService
         };
     }
 
+    public async Task Upload(ImageUpload image)
+    {
+        // Put main file
+        var args = new PutObjectArgs()
+            .WithBucket(_imgs)
+            .WithRequestBody(image.Image)
+            .WithFileName(image.Name);
+        await _minio.PutObjectAsync(args).ConfigureAwait(false);
+        // Make and put thumbnail
+        using var ms = await MakeThumbnail(image.Image).ConfigureAwait(false);
+        args = new PutObjectArgs().WithBucket(_thumb).WithStreamData(ms);
+        await _minio.PutObjectAsync(args).ConfigureAwait(false);
+    }
+
+    public async Task Upload(IEnumerable<ImageUpload> images)
+    {
+        foreach (var img in images)
+        {
+            await Upload(img);
+        }
+    }
+
+    private static async Task<Stream> MakeThumbnail(byte[] bytes)
+    {
+        const int THUMBNAIL_HEIGHT = 256;
+        using var img = Image.Load(bytes);
+        var aspectRatio = img.Width / img.Height;
+        var width = THUMBNAIL_HEIGHT * aspectRatio;
+        img.Mutate(a => a.Resize(width, THUMBNAIL_HEIGHT));
+        var ms = new MemoryStream();
+        await img.SaveAsPngAsync(ms);
+        return ms;
+    }
+
     private static bool IsSupportedImage(string key)
     {
         return key.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
@@ -122,4 +157,5 @@ public class MinioImageService : IImageService
             || key.EndsWith(".tif", StringComparison.OrdinalIgnoreCase)
             || key.EndsWith(".tiff", StringComparison.OrdinalIgnoreCase);
     }
+
 }

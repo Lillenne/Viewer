@@ -11,9 +11,9 @@ public class ImageClient : IImageClient
 {
     private readonly HttpClient _client;
 
-    public ImageClient(HttpClient client)
+    public ImageClient(IHttpClientFactory client)
     {
-        _client = client;
+        _client = client.CreateClient("api");
     }
 
     public async Task<OptionalResult<IReadOnlyList<DirectoryTreeItem>>> GetSubDirectories(
@@ -85,5 +85,5 @@ public class ImageClient : IImageClient
             return new OptionalResult<ImageId>(e);
         }
     }
-    
+
 }

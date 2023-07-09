@@ -10,7 +10,7 @@
 * ~~User credential database~~ &rarr; Completed 6/2/23
   * ~~Registration return urls~~ &rarr; Completed 7/3/23
 * Image server implementation 1 (app local file system)
-  * Serve
+  * ~~Serve~~ &rarr; Completed 7/5/23
   * Download
   * Upload
 * User groups and photo view/share permissions

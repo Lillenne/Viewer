@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Png;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
+using Viewer.Shared.Services;
 
 namespace Viewer.Server.Services;
 
@@ -77,7 +78,7 @@ public class AppFileImageService : IImageService
             Url = LoadImage(name, request.Width, request.Height)
         });
     }
-    
+
     private static string LoadImage(string name, int width, int height)
     {
         using var fs = File.OpenRead(name);
@@ -85,7 +86,7 @@ public class AppFileImageService : IImageService
         img.ResizeImage(width, height);
         return img.ToBase64String(PngFormat.Instance);
     }
-    
+
     private static string LoadImage(string name)
     {
         using var fs = File.OpenRead(name);
@@ -129,6 +130,20 @@ public class AppFileImageService : IImageService
             {
                 yield return file;
             }
+        }
+    }
+
+    public async Task Upload(ImageUpload image)
+    {
+        var path = Path.Combine(BaseDirectory, image.Name);
+        await File.WriteAllBytesAsync(path, image.Image);
+    }
+
+    public async Task Upload(IEnumerable<ImageUpload> images)
+    {
+        foreach (var img in images)
+        {
+            await Upload(img);
         }
     }
 }

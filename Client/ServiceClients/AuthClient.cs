@@ -1,9 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
+using Viewer.Client.Pages;
 using Viewer.Shared;
 using Viewer.Shared.Dtos;
 using Viewer.Shared.Requests;
@@ -12,24 +14,25 @@ namespace Viewer.Client.ServiceClients;
 
 public class AuthClient : AuthenticationStateProvider, IAuthClient
 {
-    public AuthClient(HttpClient client, ILocalStorageService storage)
+    public AuthClient(IHttpClientFactory client, ILocalStorageService storage)
     {
-        _client = client;
         _storage = storage;
+        _client = client.CreateClient("api");
     }
+
     private readonly HttpClient _client;
     private readonly ILocalStorageService _storage;
 
     public async Task<bool> Login(UserLogin login)
     {
-        var response = await _client.PostAsJsonAsync("api/Auth/login", login).ConfigureAwait(false);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Auth.Login, login).ConfigureAwait(false);
         if (response.StatusCode != HttpStatusCode.OK)
             return false;
-        
+
         var token = await response.Content.ReadFromJsonAsync<AuthToken>();
         if (token is null)
             return false;
-        
+
         await StoreToken(token);
         NotifyAuthStateChanged();
         return true;
@@ -37,15 +40,14 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
 
     public async Task<bool> ChangePassword(ChangePasswordRequest request)
     {
-        var response = await _client.PostAsJsonAsync("api/Auth/change-pwd", request).ConfigureAwait(false);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Auth.ChangePassword, request).ConfigureAwait(false);
         return response.StatusCode is HttpStatusCode.OK or HttpStatusCode.Created or HttpStatusCode.NoContent;
     }
 
     public async Task<bool> Register(UserRegistration info)
     {
-        var response = await _client.PostAsJsonAsync("api/Auth/register", info).ConfigureAwait(false);
-        // TODO 201?
-        return response.StatusCode is HttpStatusCode.OK or HttpStatusCode.Created or HttpStatusCode.NoContent;
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Auth.Register, info).ConfigureAwait(false);
+        return response.IsSuccessStatusCode;
     }
     private async Task StoreToken(AuthToken token) => await _storage.SetItemAsStringAsync(JwtKey, token.Token).ConfigureAwait(false);
 
@@ -79,15 +81,16 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
         // TODO expiry
         return (await _storage.GetItemAsStringAsync(JwtKey, default).ConfigureAwait(false)) is not null;
     }
-    
+
     public async Task SignOut()
     {
         await _storage.RemoveItemAsync(JwtKey, default);
         NotifyAuthStateChanged();
     }
-    
+
     private void NotifyAuthStateChanged()
     {
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
+
 }

@@ -1,4 +1,3 @@
-using LanguageExt.Common;
 using Viewer.Shared;
 using Viewer.Shared.Dtos;
 using Viewer.Shared.Requests;
@@ -13,4 +12,4 @@ public interface IAuthClient
     Task<bool> Register(UserRegistration info);
     Task<bool> GetIsLoggedIn();
     Task SignOut();
-} 
+}

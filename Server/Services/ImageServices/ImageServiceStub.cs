@@ -1,5 +1,6 @@
 using Viewer.Shared;
 using Viewer.Shared.Requests;
+using Viewer.Shared.Services;
 
 namespace Viewer.Server.Services;
 
@@ -53,4 +54,8 @@ public class ImageServiceStub : IImageService
     }
 
     public Task<ImageId> GetImage(GetImageRequest request) => GetImage();
+
+    public Task Upload(ImageUpload image) => Task.CompletedTask;
+
+    public Task Upload(IEnumerable<ImageUpload> images) => Task.CompletedTask;
 }

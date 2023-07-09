@@ -5,6 +5,7 @@ using Viewer.Server.Controllers;
 using Viewer.Server.Services;
 using Viewer.Server.Models;
 using Viewer.Shared;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -20,6 +21,7 @@ builder.Services
     {
         o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         o.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        o.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
         o.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     })
     .AddJwtBearer(o =>
@@ -31,13 +33,18 @@ builder.Services
             ),
             ValidIssuer = config["JwtSettings:Issuer"],
             ValidAudience = config["JwtSettings:Audience"],
-            ValidateIssuer = false, // TODO
-            ValidateAudience = false, // TODO
+            ValidateIssuer = true,
+            ValidateAudience = true,
             ValidateLifetime = false, // TODO
-            ValidateIssuerSigningKey = false, // TODO
+            ValidateIssuerSigningKey = true,
         };
     });
-builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(o =>
+{
+    o.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme).RequireAuthenticatedUser().Build();
+});
+
 builder.Services.AddCors(
     o =>
         o.AddPolicy(
