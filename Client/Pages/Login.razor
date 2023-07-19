@@ -1,8 +1,6 @@
 @page "/login"
 @page "/login/{ReturnUri}"
 @using Viewer.Shared
-@using LanguageExt.Common
-@using LanguageExt
 @using Viewer.Client.ServiceClients
 @inject NavigationManager Nav
 @inject IAuthClient Auth;
@@ -23,7 +21,6 @@
         </EditForm>
         <div class="d-flex flex-row justify-content-center mt-4 mb-4">
             <MudButton OnClick="@Register">Register</MudButton>
-            <AsGuestButton/>
         </div>
         @if (_failed)
         {

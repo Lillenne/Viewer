@@ -1,2 +1,16 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Viewer.Shared;
-public record AuthToken(string Token);
+
+public readonly record struct AuthToken
+{
+    public required string Token { get; init; }
+
+    public AuthToken() { }
+
+    [SetsRequiredMembers]
+    public AuthToken(string token)
+    {
+        Token = token;
+    }
+}

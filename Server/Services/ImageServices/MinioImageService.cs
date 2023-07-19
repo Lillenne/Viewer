@@ -1,7 +1,6 @@
 using System.Reactive.Linq;
 using Microsoft.Extensions.Options;
 using Minio;
-using SixLabors.ImageSharp.Formats.Png;
 using Viewer.Server.Models;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
@@ -14,10 +13,14 @@ public class MinioImageService : IImageService
     private readonly MinioClient _minio;
     private readonly string _imgs;
     private readonly string _thumb;
+    private readonly string _imgsUrl;
+    private readonly string _thumbUrl;
 
     public MinioImageService(IOptions<MinioOptions> minioConfig)
     {
         _imgs = minioConfig.Value.ImageBucket;
+        _imgsUrl = $"http://{minioConfig.Value.Endpoint}:{minioConfig.Value.Port}/{minioConfig.Value.ImageBucket}/";
+        _thumbUrl = $"http://{minioConfig.Value.Endpoint}:{minioConfig.Value.Port}/{minioConfig.Value.ThumbnailBucket}/";
         _thumb = minioConfig.Value.ThumbnailBucket;
         _minio = new MinioClient()
             .WithCredentials(minioConfig.Value.AccessKey, minioConfig.Value.SecretKey)
@@ -27,92 +30,61 @@ public class MinioImageService : IImageService
 
     public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? directoryName)
     {
-        var objects = _minio
-            .ListObjectsAsync(
-                new ListObjectsArgs().WithBucket(_imgs).WithPrefix(directoryName ?? "/")
-            )
-            .ToEnumerable()
-            .ToList();
-        var collect = new List<DirectoryTreeItem>();
-        foreach (var item in objects)
-        {
-            if (!item.IsDir)
-                continue;
-            var hasSubdirs = _minio.ListObjectsAsync(
-                new ListObjectsArgs()
-                .WithBucket(_imgs)
-                .WithPrefix(item.Key))
-                .ToEnumerable()
-                .Any(item => item.IsDir);
-            var dtItem = new DirectoryTreeItem()
-            {
-                DirectoryName = item.Key,
-                HasSubDirectories = hasSubdirs
-            };
-            collect.Add(dtItem);
-        }
-        return Task.FromResult((IReadOnlyList<DirectoryTreeItem>)collect);
+        var item = new DirectoryTreeItem(directoryName ?? "/");
+        FillSubdirs(item);
+        return Task.FromResult<IReadOnlyList<DirectoryTreeItem>>(new List<DirectoryTreeItem> { item });
     }
 
-    public async Task<GetImagesResponse> GetImages(GetImagesRequest request)
+    private void FillSubdirs(DirectoryTreeItem d)
     {
-        var list = new ListObjectsArgs().WithBucket(_imgs).WithPrefix(request.Directory);
-        var observable = _minio.ListObjectsAsync(list);
-        var collect = new List<ImageId>();
-        var objects = observable.ToEnumerable();
-#if DEBUG
-        objects = objects.Take(5);
-#endif
-        foreach (var item in objects)
+        // TODO minimize calls
+
+        // Locate immediate subdirs
+        var subdirs = _minio
+            .ListObjectsAsync(new ListObjectsArgs().WithBucket(_imgs).WithPrefix(d.DirectoryName))
+            .ToEnumerable()
+            .Where(i => i.IsDir)
+            .ToList();
+
+        // For each subdir
+        foreach (var sdir in subdirs)
         {
-            if (!IsSupportedImage(item.Key))
-            {
-                continue;
-            }
-
-            using var ms = new MemoryStream((int)item.Size);
-            _ = await _minio.GetObjectAsync(
-                new GetObjectArgs()
-                    .WithBucket(_imgs)
-                    .WithObject(item.Key)
-                    .WithCallbackStream(s => s.CopyTo(ms))
-            );
-            ms.Position = 0;
-            var img = Image.Load(ms);
-            // TODO don't resize, store multiple sizes
-            var w = request.Width;
-            var h = request.Height;
-            img.ResizeImage(request.Width, request.Height);
-            string b64 = img.ToBase64String(PngFormat.Instance);
-            var id = new ImageId()
-            {
-                Guid = Guid.NewGuid(),
-                Name = item.Key,
-                Url = b64
-            };
-            collect.Add(id);
+            // Add the subdir
+            var s = new DirectoryTreeItem(sdir.Key);
+            d.Subdirectories.Add(s);
+            // Recursive call
+            FillSubdirs(s);
         }
-
-        return new GetImagesResponse() { Images = collect };
     }
 
-    public async Task<ImageId> GetImage(GetImageRequest request)
+    public Task<GetImagesResponse> GetImages(GetImagesRequest request)
+    {
+        var list = new ListObjectsArgs().WithBucket(_imgs).WithPrefix(request.Directory ?? "/");
+        var observable = _minio.ListObjectsAsync(list).Skip(request.StartIndex);
+        if (request.TakeNumber > 0)
+            observable = observable.Take(request.TakeNumber); // TODO does this throw if take num > length?
+
+        // TODO send thumbnails and not full size images
+
+        var imgs = observable
+            .ToEnumerable()
+            .Where(i => IsSupportedImage(i.Key))
+            .Select(i => new ImageId() { Name = i.Key, Url = _imgsUrl + i.Key })
+            .ToList();
+        GetImagesResponse resp = new GetImagesResponse() { Images = imgs };
+        return Task.FromResult(resp);
+    }
+
+    public async Task<byte[]> GetImageBytes(string name)
     {
         using var ms = new MemoryStream();
-        _ = await _minio.GetObjectAsync(new GetObjectArgs()
-        .WithBucket(_imgs)
-        .WithObject(request.Name)
-        .WithCallbackStream(buf => buf.CopyTo(ms)));
-        await ms.FlushAsync().ConfigureAwait(false);
-        ms.Seek(0, SeekOrigin.Begin);
-        using var img = Image.Load(ms);
-        img.ResizeImage(request.Width, request.Height);
-        return new ImageId()
-        {
-            Url = img.ToBase64String(PngFormat.Instance),
-            Name = request.Name,
-            Guid = Guid.NewGuid()
-        };
+        _ = await _minio.GetObjectAsync(
+            new GetObjectArgs()
+                .WithBucket(_imgs)
+                .WithObject(name)
+                .WithCallbackStream(buf => buf.CopyTo(ms))
+        );
+        return ms.ToArray();
     }
 
     public async Task Upload(ImageUpload image)
@@ -158,4 +130,10 @@ public class MinioImageService : IImageService
             || key.EndsWith(".tiff", StringComparison.OrdinalIgnoreCase);
     }
 
+    public Task<ImageId> GetImage(GetImageRequest request)
+    {
+        return Task.FromResult(
+            new ImageId() { Name = request.Name, Url = _imgsUrl + request.Name }
+        );
+    }
 }

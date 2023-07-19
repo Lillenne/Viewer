@@ -6,6 +6,10 @@ public static class Extensions
     {
         if (w < 1 || h < 1)
         {
+            if (w == img.Width && h == img.Height)
+            {
+                return;
+            }
             if (w > 0 && h > 0)
             {
                 img.Mutate(x => x.Resize(w, h));

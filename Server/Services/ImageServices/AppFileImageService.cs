@@ -8,30 +8,49 @@ namespace Viewer.Server.Services;
 
 public class AppFileImageService : IImageService
 {
-    private static string BaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Pictures");
+    private static readonly string BaseDirectory = Path.Combine(
+        AppDomain.CurrentDomain.BaseDirectory,
+        "Pictures"
+    );
 
     public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? directoryName)
     {
         if (!GetValidPath(ref directoryName))
         {
             return Task.FromResult(
-                    (IReadOnlyList<DirectoryTreeItem>)Array.Empty<DirectoryTreeItem>()
-                );
-        }
-        return Task.FromResult(
-                (IReadOnlyList<DirectoryTreeItem>)
-                    Directory
-                        .EnumerateDirectories(directoryName)
-                        .Select(d =>
-                        {
-                            return new DirectoryTreeItem
-                            {
-                                HasSubDirectories = Directory.EnumerateDirectories(d).Any(),
-                                DirectoryName = d
-                            };
-                        })
-                        .ToList()
+                (IReadOnlyList<DirectoryTreeItem>)Array.Empty<DirectoryTreeItem>()
             );
+        }
+
+        // var l = new List<DirectoryTreeItem>();
+        // foreach (var dir in Directory.EnumerateDirectories(directoryName, "*", SearchOption.TopDirectoryOnly))
+        // {
+        //     var d = new DirectoryTreeItem(dir);
+        //     FillSubdirs(d);
+        //     l.Add(d);
+        // }
+
+        if (!directoryName.EndsWith(Path.DirectorySeparatorChar))
+            directoryName += Path.DirectorySeparatorChar;
+        var t = new DirectoryTreeItem(directoryName);
+        FillSubdirs(t);
+        return Task.FromResult((IReadOnlyList<DirectoryTreeItem>)new List<DirectoryTreeItem> { t });
+    }
+
+    private static void FillSubdirs(DirectoryTreeItem dir)
+    {
+        foreach (
+            var subdir in Directory.EnumerateDirectories(
+                dir.DirectoryName,
+                "*",
+                SearchOption.TopDirectoryOnly
+            )
+        )
+        {
+            var item = subdir.EndsWith(Path.DirectorySeparatorChar) ? new DirectoryTreeItem(subdir) : new DirectoryTreeItem(subdir + Path.DirectorySeparatorChar);
+            dir.Subdirectories.Add(item);
+            FillSubdirs(item);
+        }
     }
 
     public Task<GetImagesResponse> GetImages(GetImagesRequest request)
@@ -39,14 +58,13 @@ public class AppFileImageService : IImageService
         var name = request.Directory;
         if (!GetValidPath(ref name))
         {
-            return Task.FromResult(new GetImagesResponse()
-            {
-                Images = new List<ImageId>()
-            });
+            return Task.FromResult(new GetImagesResponse() { Images = new List<ImageId>() });
         }
-        List<ImageId> imageIds = GetImageFiles(name)
-            .Select(f => GetIdFromB64Str(f, LoadImage(f, request.Width, request.Height)))
-            .ToList();
+        var enu = GetImageFiles(name).Skip(request.StartIndex);
+        if (request.TakeNumber > 0)
+            enu = enu.Take(request.TakeNumber);
+
+        List<ImageId> imageIds = enu.Select(f => GetIdFromB64Str(f, LoadImage(f, request.Width, request.Height))).ToList();
         return Task.FromResult(new GetImagesResponse() { Images = imageIds });
     }
 
@@ -71,12 +89,13 @@ public class AppFileImageService : IImageService
         {
             return Task.FromException<ImageId>(new FileNotFoundException(name));
         }
-        return Task.FromResult(new ImageId
-        {
-            Guid = Guid.NewGuid(),
-            Name = GetRelativePath(name),
-            Url = LoadImage(name, request.Width, request.Height)
-        });
+        return Task.FromResult(
+            new ImageId
+            {
+                Name = GetRelativePath(name),
+                Url = LoadImage(name, request.Width, request.Height)
+            }
+        );
     }
 
     private static string LoadImage(string name, int width, int height)
@@ -87,22 +106,9 @@ public class AppFileImageService : IImageService
         return img.ToBase64String(PngFormat.Instance);
     }
 
-    private static string LoadImage(string name)
-    {
-        using var fs = File.OpenRead(name);
-        using var img = Image.Load(fs);
-        return img.ToBase64String(PngFormat.Instance);
-    }
-
     private static ImageId GetIdFromB64Str(string path, string f)
     {
-        return new ImageId
-        {
-            Url = f,
-            //Url = GetRelativePath(f),
-            Name = GetRelativePath(path),
-            Guid = Guid.NewGuid() // TODO
-        };
+        return new ImageId { Url = f, Name = GetRelativePath(path), };
     }
 
     private static bool GetValidPath([NotNullWhen(true)] ref string? directoryName)
@@ -118,14 +124,20 @@ public class AppFileImageService : IImageService
 
     private static readonly string[] exts = { "png", "jpg", "jpeg", "tif", "tiff" };
 
-    private static IEnumerable<string> GetImageFiles(string dir) => GetFileTypesInFolder(dir, exts);
+    private static IEnumerable<string> GetImageFiles(string dir)
+    {
+        return GetFileTypesInFolder(dir, exts);
+    }
 
-
-    private static IEnumerable<string> GetFileTypesInFolder(string dir, IEnumerable<string> exts)
+    private static IEnumerable<string> GetFileTypesInFolder(
+        string dir,
+        IEnumerable<string> exts,
+        SearchOption option = SearchOption.TopDirectoryOnly
+    )
     {
         foreach (var ext in exts)
         {
-            var files = Directory.EnumerateFiles(dir, $"*.{ext}", SearchOption.TopDirectoryOnly);
+            var files = Directory.EnumerateFiles(dir, $"*.{ext}", option);
             foreach (var file in files)
             {
                 yield return file;

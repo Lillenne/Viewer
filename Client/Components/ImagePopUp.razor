@@ -3,14 +3,16 @@
 
 <MudDialog>
     <DialogContent>
-        @if (Source == null)
-        {
-            <MudText Typo="Typo.h6" Color="Color.Error">An error occurred. Please try again later.</MudText>
-        }
-        else
-        {
-            <MudImage Fluid="true" Src="@Source.Url" Alt="The image you clicked on" loading="lazy"/>
-        }
+        <MudContainer Style="max-height: 95vh; max-width: 95wh">
+            @if (Source == null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Error">An error occurred. Please try again later.</MudText>
+            }
+            else
+            {
+                <MudImage Src="@Source.Url" Alt="The image you clicked on" ObjectFit="@ObjectFit.Contain" Fluid="true" Style="max-height: 1000px" />
+            }
+        </MudContainer>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@Close">Cancel</MudButton>

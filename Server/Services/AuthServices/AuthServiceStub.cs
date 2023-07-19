@@ -1,4 +1,3 @@
-using LanguageExt.Common;
 using Viewer.Shared;
 using Viewer.Shared.Dtos;
 using Viewer.Shared.Requests;
@@ -7,24 +6,24 @@ namespace Viewer.Server.Services;
 
 public class AuthServiceStub : IAuthService
 {
-    public Task<Result<AuthToken>> Login(UserLogin userLogin)
+    public Task<AuthToken> Login(UserLogin userLogin)
     {
         return userLogin?.Username?.Equals("Fail", StringComparison.OrdinalIgnoreCase) ?? true
-            ? Task.FromResult(new Result<AuthToken>(new Exception("Failed")))
-            : Task.FromResult(new Result<AuthToken>(new AuthToken("MyToken")));
+            ? Task.FromResult(new AuthToken(""))
+            : Task.FromResult(new AuthToken("MyToken"));
     }
 
-    public Task<Result<bool>> ChangePassword(ChangePasswordRequest request)
+    public Task ChangePassword(ChangePasswordRequest request)
     {
-        return request.UserId == new Guid("1")
-            ? Task.FromResult(new Result<bool>(new Exception("Failed")))
-            : Task.FromResult(new Result<bool>(true));
+        return request.UserId == "1"
+            ? Task.FromResult(true)
+            : Task.FromException(new Exception("Fail"));
     }
 
-    public Task<Result<bool>> Register(UserRegistration info)
+    public Task Register(UserRegistration info)
     {
         return info?.Username?.Equals("Fail", StringComparison.OrdinalIgnoreCase) ?? true
-            ? Task.FromResult(new Result<bool>(new Exception("Failed")))
-            : Task.FromResult(new Result<bool>(true));
+            ? Task.FromException(new Exception("Fail"))
+            : Task.FromResult(true);
     }
 }

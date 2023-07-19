@@ -1,4 +1,3 @@
-using LanguageExt.Common;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
 
@@ -6,9 +5,7 @@ namespace Viewer.Client.ServiceClients;
 
 public interface IImageClient
 {
-    public Task<OptionalResult<IReadOnlyList<DirectoryTreeItem>>> GetSubDirectories(
-        string? dir = default
-    );
-    public Task<OptionalResult<IReadOnlyList<ImageId>>> GetImages(GetImagesRequest request);
-    public Task<OptionalResult<ImageId>> GetImage(GetImageRequest request);
+    public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? dir = default);
+    public Task<IReadOnlyList<ImageId>> GetImages(GetImagesRequest request);
+    public Task<ImageId?> GetImage(GetImageRequest request);
 }

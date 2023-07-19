@@ -1,6 +1,4 @@
 using System.Net.Http.Json;
-using LanguageExt;
-using LanguageExt.Common;
 using Viewer.Client.Pages;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
@@ -16,74 +14,31 @@ public class ImageClient : IImageClient
         _client = client.CreateClient("api");
     }
 
-    public async Task<OptionalResult<IReadOnlyList<DirectoryTreeItem>>> GetSubDirectories(
-        string? dir
-    )
+    public async Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? dir)
     {
-        try
-        {
-            var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Dirs, dir);
-            if (!response.IsSuccessStatusCode)
-                return new OptionalResult<IReadOnlyList<DirectoryTreeItem>>(
-                    new Exception(response.ReasonPhrase)
-                ); // TODO more specific exception
-            var cntnt = await response.Content.ReadFromJsonAsync<
-                IReadOnlyList<DirectoryTreeItem>
-            >();
-            return new OptionalResult<IReadOnlyList<DirectoryTreeItem>>(
-                cntnt is null ? new OptionNone() : new Some<IReadOnlyList<DirectoryTreeItem>>(cntnt)
-            );
-        }
-        catch (Exception e)
-        {
-            return new OptionalResult<IReadOnlyList<DirectoryTreeItem>>(e);
-        }
+        var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Dirs, dir);
+        return !response.IsSuccessStatusCode
+            ? Array.Empty<DirectoryTreeItem>()
+            : await response.Content.ReadFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>()
+                ?? Array.Empty<DirectoryTreeItem>();
     }
 
-    public async Task<OptionalResult<IReadOnlyList<ImageId>>> GetImages(GetImagesRequest request)
+    public async Task<IReadOnlyList<ImageId>> GetImages(GetImagesRequest request)
     {
-        try
-        {
-            var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Base, request);
-            if (!response.IsSuccessStatusCode)
-                return new OptionalResult<IReadOnlyList<ImageId>>(
-                    new Exception(response.ReasonPhrase)
-                ); // TODO more specific exception
-            var content = await response.Content.ReadFromJsonAsync<GetImagesResponse>();
-            return new OptionalResult<IReadOnlyList<ImageId>>(
-                content?.Images is null
-                    ? new OptionNone()
-                    : new Some<IReadOnlyList<ImageId>>(content.Images)
-            );
-        }
-        catch (Exception e)
-        {
-            return new OptionalResult<IReadOnlyList<ImageId>>(e);
-        }
+        var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Base, request);
+        return !response.IsSuccessStatusCode
+            ? Array.Empty<ImageId>()
+            : (
+                await response.Content.ReadFromJsonAsync<GetImagesResponse>().ConfigureAwait(false)
+            )?.Images ?? Array.Empty<ImageId>();
     }
 
-    public async Task<OptionalResult<ImageId>> GetImage(GetImageRequest request)
+    public async Task<ImageId?> GetImage(GetImageRequest request)
     {
-        try
-        {
-            HttpResponseMessage response = await _client.PostAsJsonAsync(
-                ApiRoutes.ImageAccess.Image,
-                request
-            );
-            if (!response.IsSuccessStatusCode)
-            {
-                return new(new Exception(response.ReasonPhrase));
-            }
-            var img = await response.Content.ReadFromJsonAsync<ImageId>().ConfigureAwait(false);
-            var res = img is not null
-                ? new OptionalResult<ImageId>(new Some<ImageId>(img))
-                : new OptionalResult<ImageId>();
-            return res;
-        }
-        catch (Exception e)
-        {
-            return new OptionalResult<ImageId>(e);
-        }
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            ApiRoutes.ImageAccess.Image,
+            request
+        );
+        return await response.Content.ReadFromJsonAsync<ImageId>().ConfigureAwait(false);
     }
-
 }

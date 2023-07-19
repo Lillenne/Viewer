@@ -1,5 +1,4 @@
 using CommunityToolkit.Diagnostics;
-using LanguageExt;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server.Models;
 
@@ -44,16 +43,7 @@ namespace Viewer.Server.Services
 
         public async Task AddUser(User user)
         {
-            User? option = await Users.FirstOrDefaultAsync(u => u.Id == user.Id);
-            if (option is null)
-            {
-                _ = Users.Add(user);
-            }
-            else
-            {
-                _ = Users.Update(user);
-            }
-
+            _ = Users.Add(user);
             _ = await SaveChangesAsync();
         }
     }

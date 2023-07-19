@@ -44,12 +44,13 @@ else
                     <MudListItem Text="Ctrl + click to bookmark" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
                     <MudListItem Text="Use the folder view to navigate" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
                 </MudList>
-                <MudTreeView T="DirectoryTreeItem" Hover="true" Items="_directories" ServerData="@LoadServerData" @bind-SelectedValue="@SelectedDirectory">
+                <MudTreeView T="DirectoryTreeItem" Hover="true" Items="_directories" @bind-SelectedValue="@SelectedDirectory">
                     <ItemTemplate Context="item">
                         <MudTreeViewItem T="DirectoryTreeItem"
                                          CanExpand="@ItemHasChildren(item)"
                                          Icon="@Icons.Material.Filled.Folder"
-                                         Text="@item.DirectoryName"
+                                         Items="@item.Subdirectories.ToHashSet()"
+                                         Text="@item.GetShortName()"
                                          Value="@item">
                         </MudTreeViewItem>
                     </ItemTemplate>
@@ -58,7 +59,6 @@ else
         </MudItem>
         <MudItem xs="9" sm="10" Style="display: inline-block">
             <Gallery Images="@Images"/>
-            @* <Gallery Images="@_images"/> *@
         </MudItem>
     </MudGrid>
 }
@@ -66,18 +66,24 @@ else
 
 @code {
     private int Width => 256; //TODO calculate
+    
     private async Task<string?> GetName() => AuthState is null ? null 
         : (await AuthState).User.Claims
             .FirstOrDefault(n => n.Type.Equals("name", StringComparison.InvariantCultureIgnoreCase))?.Value;
+
     private IReadOnlyList<ImageId>? _images;
-    private IReadOnlyList<ImageId>? Images {
+    private IReadOnlyList<ImageId>? Images 
+    {
         get => _images;
         set 
         {
             _images = value;
             StateHasChanged();
-        }}
+        }
+    }
+    
     private System.Collections.Generic.HashSet<DirectoryTreeItem>? _directories;
+    
     private DirectoryTreeItem? _selectedDir;
 
     private DirectoryTreeItem? SelectedDirectory
@@ -89,37 +95,14 @@ else
             ChangeFolder(value);
         }
     }
+
     [CascadingParameter] public Task<AuthenticationState>? AuthState { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        var dirs = (await ImageClient.GetSubDirectories());
-        dirs.IfSucc(f =>
-        {
-            _directories = f.ToHashSet();
-            SelectedDirectory = f.FirstOrDefault();
-        });
-        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = SelectedDirectory?.DirectoryName, Width=Width});
-        imgs.IfSucc(im => Images = im);
-    /*
-        // TODO auth-state related logic 
-        if (AuthState is not null)
-        {
-            var state = await AuthState;
-            if (state.User.Identity?.Name.Equals(GuestCredentials.Username, StringComparison.OrdinalIgnoreCase) ?? true)
-            {
-                // TODO get sample images
-            }
-        }
-        else
-        {
-            var tf = Client.GetFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>("api/ImageAccess/dirs");
-            _directories = (await tf.ConfigureAwait(false))?.ToHashSet();
-            var r = await tr.ConfigureAwait(false);
-            var resp = await r.Content.ReadFromJsonAsync<GetImagesResponse>();
-            _images = resp?.Images;
-        }
-    */
+        _directories = (await ImageClient.GetDirectories().ConfigureAwait(false)).ToHashSet();
+        SelectedDirectory = _directories.FirstOrDefault();
+        Images = await ImageClient.GetImages(new GetImagesRequest() { Directory = SelectedDirectory?.DirectoryName, Width=Width});
     }
 
     private async Task ChangeFolder(DirectoryTreeItem? value)
@@ -129,28 +112,8 @@ else
             Images = Array.Empty<ImageId>();
             return;
         }
-        var imgs = await ImageClient.GetImages(new GetImagesRequest() { Directory = value.DirectoryName, Width = Width });
-        Images = imgs.Match<IReadOnlyList<ImageId>>(i => i, Array.Empty<ImageId>, e =>
-        {
-    // TODO show popup error?
-            return Array.Empty<ImageId>();
-        });
+        Images = await ImageClient.GetImages(new GetImagesRequest() { Directory = value.DirectoryName, Width = Width });
     }
 
-    private async Task<System.Collections.Generic.HashSet<DirectoryTreeItem>> LoadServerData(DirectoryTreeItem? arg)
-    {
-        var dirs = (await ImageClient.GetSubDirectories(arg?.DirectoryName));
-        return dirs.Match(
-            some => some.ToHashSet(),
-            () => new(),
-            DoDirErr);
-    }
-
-    private System.Collections.Generic.HashSet<DirectoryTreeItem> DoDirErr(Exception arg)
-    {
-        // TODO show popup
-        return new();
-    }
-
-    private static bool ItemHasChildren(DirectoryTreeItem? value) => value?.HasSubDirectories ?? false;
+    private static bool ItemHasChildren(DirectoryTreeItem item) => item.Subdirectories.Count > 0;
 }

@@ -7,8 +7,8 @@ namespace Viewer.Server.Services;
 public interface IImageService
 {
     Task<GetImagesResponse> GetImages(GetImagesRequest request);
-    Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? directoryName);
     Task<ImageId> GetImage(GetImageRequest request);
+    Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? directoryName);
     Task Upload(ImageUpload image);
     Task Upload(IEnumerable<ImageUpload> images);
 }

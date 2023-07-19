@@ -76,11 +76,8 @@
             Width = -1,
             Height = -1,
         });
-        var disp = src.Match(
-            s => s,
-            () => img,
-            e => img);
-        var opts = new DialogOptions() { CloseOnEscapeKey = true };
+        var disp = src is not null ? src : img;
+        var opts = new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true };
         var parameters = new DialogParameters();
         parameters.Add("Source", disp);
         DialogService.Show<ImagePopUp>(img.Name, parameters, opts);

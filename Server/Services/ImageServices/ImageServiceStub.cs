@@ -16,23 +16,9 @@ public class ImageServiceStub : IImageService
 
     public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? dir)
     {
-        var ti = new DirectoryTreeItem
-        {
-            DirectoryName = "Folder 1",
-            HasSubDirectories = true
-        };
-        var tf = new DirectoryTreeItem
-        {
-            DirectoryName = "Folder 2",
-            HasSubDirectories = true
-            //SubDirectories = new HashSet<DirectoryTreeItem> { ti }
-        };
-        var tb = new DirectoryTreeItem
-        {
-            DirectoryName = "Folder 3",
-            HasSubDirectories = false
-            //SubDirectories = new HashSet<DirectoryTreeItem> { ti, tf }
-        };
+        var ti = new DirectoryTreeItem("Folder 1");
+        var tf = new DirectoryTreeItem("Folder 2", new[] { ti });
+        var tb = new DirectoryTreeItem("Folder 3");
 
         return Task.FromResult((IReadOnlyList<DirectoryTreeItem>)(new[] { ti, tf, tb }));
     }
@@ -46,7 +32,6 @@ public class ImageServiceStub : IImageService
     {
         return new ImageId
         {
-            Guid = Guid.NewGuid(),
             Name = "Random image",
             Url =
                 @"https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png"

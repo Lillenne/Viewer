@@ -12,11 +12,13 @@ public class GetImagesRequest
     public bool Recursive { get; init; }
     public int Width { get; init; }
     public int Height { get; init; }
+    public int StartIndex { get; init; } = 0;
+    public int TakeNumber { get; init; } = -1;
 }
 
 public class GetImageRequest
 {
     public int Width { get; init; }
     public int Height { get; init; }
-    public string Name { get; init; }
+    public required string Name { get; init; }
 }

@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using LanguageExt.Common;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Viewer.Server.Controllers;
@@ -25,38 +24,32 @@ public class JwtAuthService : IAuthService
         _jwt = options.Value;
     }
 
-    public async Task<Result<AuthToken>> Login(UserLogin userLogin)
+    public async Task<AuthToken> Login(UserLogin userLogin)
     {
         if (string.IsNullOrEmpty(userLogin.Username))
-            return new Result<AuthToken>(new ArgumentException("Username required"));
+            throw new ArgumentException("Username required");
+        if (string.IsNullOrEmpty(userLogin.Password))
+            throw new ArgumentException("Password required");
         var user = await GetUserInformation(userLogin.Username);
         if (!VerifyPassword(userLogin.Password, user.PasswordHash, user.PasswordSalt))
         {
-            return new Result<AuthToken>(new ArgumentException("Incorrect password"));
+            throw new ArgumentException("Invalid password");
         }
         var token = CreateToken(user);
-        return new Result<AuthToken>(new AuthToken(token));
+        return new AuthToken(token);
     }
-    
-    public async Task<Result<bool>> ChangePassword(ChangePasswordRequest request)
+
+    public async Task ChangePassword(ChangePasswordRequest request)
     {
         var user = await GetUserInformation(request.UserId);
         if (!VerifyPassword(request.OldPassword, user.PasswordHash, user.PasswordSalt))
-            return new Result<bool>(new ArgumentException("Invalid password"));
+            throw new ArgumentException("Invalid password");
         var (hash, salt) = CreatePasswordHash(request.NewPassword);
         user = user with { PasswordHash = hash, PasswordSalt = salt };
-        return await SaveUser(user);
-    }
-
-    // Todo change sig
-    private async Task<Result<bool>> SaveUser(User user)
-    {
-        // TODO 
         await _repo.AddUser(user);
-        return true;
     }
 
-    public async Task<Result<bool>> Register(UserRegistration info)
+    public async Task Register(UserRegistration info)
     {
         var (hash, salt) = CreatePasswordHash(info.Password);
         var user = new User
@@ -70,9 +63,9 @@ public class JwtAuthService : IAuthService
             PasswordSalt = salt,
             Groups = Array.Empty<UserGroup>()
         };
-        return await SaveUser(user);
+        await _repo.AddUser(user);
     }
-    
+
     private static (byte[] hash, byte[] salt) CreatePasswordHash(string pwd)
     {
         using var hmac = new HMACSHA256();
@@ -85,11 +78,11 @@ public class JwtAuthService : IAuthService
         var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(pwd));
         return computedHash.SequenceEqual(hash);
     }
-    
+
     private string CreateToken(User user)
     {
         var handler = new JwtSecurityTokenHandler();
-        
+
         var time = DateTime.UtcNow;
         var claims = new List<Claim>
         {
