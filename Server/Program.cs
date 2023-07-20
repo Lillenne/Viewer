@@ -16,6 +16,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.Configure<JwtOptions>(config.GetSection("JwtSettings"));
 builder.Services.Configure<MinioOptions>(config.GetSection("Minio"));
+builder.Services.AddTransient<MinioImageClient>();
+builder.Services.AddHostedService<ThumbnailSyncService>();
 builder.Services
     .AddAuthentication(o =>
     {

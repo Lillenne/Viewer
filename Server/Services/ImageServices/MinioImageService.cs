@@ -1,7 +1,5 @@
 using System.Reactive.Linq;
-using Microsoft.Extensions.Options;
 using Minio;
-using Viewer.Server.Models;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
 using Viewer.Shared.Services;
@@ -10,22 +8,11 @@ namespace Viewer.Server.Services;
 
 public class MinioImageService : IImageService
 {
-    private readonly MinioClient _minio;
-    private readonly string _imgs;
-    private readonly string _thumb;
-    private readonly string _imgsUrl;
-    private readonly string _thumbUrl;
+    private readonly MinioImageClient _minio;
 
-    public MinioImageService(IOptions<MinioOptions> minioConfig)
+    public MinioImageService(MinioImageClient minio)
     {
-        _imgs = minioConfig.Value.ImageBucket;
-        _imgsUrl = $"http://{minioConfig.Value.Endpoint}:{minioConfig.Value.Port}/{minioConfig.Value.ImageBucket}/";
-        _thumbUrl = $"http://{minioConfig.Value.Endpoint}:{minioConfig.Value.Port}/{minioConfig.Value.ThumbnailBucket}/";
-        _thumb = minioConfig.Value.ThumbnailBucket;
-        _minio = new MinioClient()
-            .WithCredentials(minioConfig.Value.AccessKey, minioConfig.Value.SecretKey)
-            .WithEndpoint(minioConfig.Value.Endpoint, minioConfig.Value.Port)
-            .Build();
+        _minio = minio;
     }
 
     public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? directoryName)
@@ -40,8 +27,8 @@ public class MinioImageService : IImageService
         // TODO minimize calls
 
         // Locate immediate subdirs
-        var subdirs = _minio
-            .ListObjectsAsync(new ListObjectsArgs().WithBucket(_imgs).WithPrefix(d.DirectoryName))
+        var subdirs = _minio.Minio
+            .ListObjectsAsync(new ListObjectsArgs().WithBucket(_minio.ImageBucket).WithPrefix(d.DirectoryName))
             .ToEnumerable()
             .Where(i => i.IsDir)
             .ToList();
@@ -59,28 +46,32 @@ public class MinioImageService : IImageService
 
     public Task<GetImagesResponse> GetImages(GetImagesRequest request)
     {
-        var list = new ListObjectsArgs().WithBucket(_imgs).WithPrefix(request.Directory ?? "/");
-        var observable = _minio.ListObjectsAsync(list).Skip(request.StartIndex);
+        var list = new ListObjectsArgs().WithBucket(_minio.ThumbnailBucket).WithPrefix(request.Directory ?? "/");
+        var observable = _minio.Minio.ListObjectsAsync(list).Skip(request.StartIndex);
         if (request.TakeNumber > 0)
             observable = observable.Take(request.TakeNumber); // TODO does this throw if take num > length?
 
-        // TODO send thumbnails and not full size images
-
+        var closestW = _minio.ThumbnailWidths.MinBy(i => Math.Abs(i - request.Width));
         var imgs = observable
             .ToEnumerable()
-            .Where(i => IsSupportedImage(i.Key))
-            .Select(i => new ImageId() { Name = i.Key, Url = _imgsUrl + i.Key })
+            .Where(i => MinioImageClient.IsSupportedImage(i.Key))
+            .Select(i => MinioImageClient.RemoveThumbnailTag(i.Key))
+            .Distinct()
+            .Select(i => new ImageId()
+            {
+                Name = i,
+                Url = _minio.ThumbnailBaseUrl + MinioImageClient.GetThumbnailName(i, closestW)
+            })
             .ToList();
-        GetImagesResponse resp = new GetImagesResponse() { Images = imgs };
-        return Task.FromResult(resp);
+        return Task.FromResult(new GetImagesResponse() { Images = imgs });
     }
 
     public async Task<byte[]> GetImageBytes(string name)
     {
         using var ms = new MemoryStream();
-        _ = await _minio.GetObjectAsync(
+        _ = await _minio.Minio.GetObjectAsync(
             new GetObjectArgs()
-                .WithBucket(_imgs)
+                .WithBucket(_minio.ImageBucket)
                 .WithObject(name)
                 .WithCallbackStream(buf => buf.CopyTo(ms))
         );
@@ -89,16 +80,16 @@ public class MinioImageService : IImageService
 
     public async Task Upload(ImageUpload image)
     {
+        // TODO publish image uploaded event
+
         // Put main file
         var args = new PutObjectArgs()
-            .WithBucket(_imgs)
+            .WithBucket(_minio.ImageBucket)
             .WithRequestBody(image.Image)
             .WithFileName(image.Name);
-        await _minio.PutObjectAsync(args).ConfigureAwait(false);
+        await _minio.Minio.PutObjectAsync(args).ConfigureAwait(false);
         // Make and put thumbnail
-        using var ms = await MakeThumbnail(image.Image).ConfigureAwait(false);
-        args = new PutObjectArgs().WithBucket(_thumb).WithStreamData(ms);
-        await _minio.PutObjectAsync(args).ConfigureAwait(false);
+        await _minio.MakeThumbnails(image).ConfigureAwait(false);
     }
 
     public async Task Upload(IEnumerable<ImageUpload> images)
@@ -109,31 +100,10 @@ public class MinioImageService : IImageService
         }
     }
 
-    private static async Task<Stream> MakeThumbnail(byte[] bytes)
-    {
-        const int THUMBNAIL_HEIGHT = 256;
-        using var img = Image.Load(bytes);
-        var aspectRatio = img.Width / img.Height;
-        var width = THUMBNAIL_HEIGHT * aspectRatio;
-        img.Mutate(a => a.Resize(width, THUMBNAIL_HEIGHT));
-        var ms = new MemoryStream();
-        await img.SaveAsPngAsync(ms);
-        return ms;
-    }
-
-    private static bool IsSupportedImage(string key)
-    {
-        return key.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
-            || key.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
-            || key.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
-            || key.EndsWith(".tif", StringComparison.OrdinalIgnoreCase)
-            || key.EndsWith(".tiff", StringComparison.OrdinalIgnoreCase);
-    }
-
     public Task<ImageId> GetImage(GetImageRequest request)
     {
         return Task.FromResult(
-            new ImageId() { Name = request.Name, Url = _imgsUrl + request.Name }
+            new ImageId() { Name = request.Name, Url = _minio.ImageBaseUrl + request.Name }
         );
     }
 }

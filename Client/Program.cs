@@ -18,6 +18,7 @@ builder.Services
 ;
 builder.Services.AddMudServices();
 builder.Services.AddScoped<Cart>();
+builder.Services.AddScoped<ImagePopUpProvider>();
 builder.Services.AddScoped<IAuthClient, AuthClient>();
 builder.Services.AddScoped<AuthHandler>();
 builder.Services.AddScoped<AuthenticationStateProvider>(

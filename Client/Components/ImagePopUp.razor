@@ -1,3 +1,4 @@
+@namespace Viewer.Client
 @using Viewer.Shared
 @inject Cart Cart;
 
@@ -24,7 +25,7 @@
 @code {
     [CascadingParameter] MudDialogInstance? MudDialogInstance { get; set; }
     [Parameter] public ImageId? Source { get; set; }
-    private string AddOrRemoveMessage => Source is not null && Cart.Images.Contains(Source) ? "Remove from cart" : "Add to cart";
+    private string AddOrRemoveMessage => Source is null ? "Image not found!" : (Cart.ContainsSimilar(Source.Name) ? "Remove from cart" : "Add to cart");
 
     protected override void OnParametersSet()
     {

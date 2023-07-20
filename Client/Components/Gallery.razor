@@ -1,6 +1,6 @@
 @inject Cart Cart;
 @inject IDialogService DialogService;
-@inject IImageClient iis;
+@inject ImagePopUpProvider iis;
 
 <div class="d-inline-flex flex-wrap gap-4 m-4">
     @if (Images is null)
@@ -31,7 +31,7 @@
                           @onclick="@(args => OnClick(img, args))"/>
                 <MudIconButton Style="z-index: 1; position: absolute; right: 5%; bottom: 5%;"
                                Size="Size.Large"
-                               Color="Color.Default"
+                               Color="Color.Secondary"
                                Variant="Variant.Text"
                                Class="hover-button"
                                Icon="@(GetIcon(img))"
@@ -62,26 +62,11 @@
         }
         else
         {
-            await CreatePopUp(img);
+            await iis.CreatePopUp(img);
         }
     }
 
     private string GetStyle(ImageId img) => Cart.Images.Contains(img) ? "filter: grayscale(30%);" : string.Empty;
-
-    private async Task CreatePopUp(ImageId img)
-    {
-        var src = await iis.GetImage(new GetImageRequest()
-        {
-            Name = img.Name,
-            Width = -1,
-            Height = -1,
-        });
-        var disp = src is not null ? src : img;
-        var opts = new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true };
-        var parameters = new DialogParameters();
-        parameters.Add("Source", disp);
-        DialogService.Show<ImagePopUp>(img.Name, parameters, opts);
-    }
 
     private void AddToOrRemoveFromCart(ImageId? img) => Cart.AddOrRemove(img);
 

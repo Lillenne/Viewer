@@ -1,5 +1,6 @@
 @using Viewer.Shared
 
+@inject ImagePopUpProvider PopUp;
 @inject Cart Cart;
 
 @if (!Cart.Images.Any())
@@ -24,9 +25,11 @@ else
         base.OnInitialized();
     }
 
-    private void Clicked(MouseEventArgs obj, ImageId img)
+    private async Task Clicked(MouseEventArgs obj, ImageId img)
     {
         if (obj.CtrlKey)
             Cart.Images.Remove(img);
+        else
+            PopUp.CreatePopUp(img);
     }
 }

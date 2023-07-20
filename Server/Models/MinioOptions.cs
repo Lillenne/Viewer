@@ -9,4 +9,5 @@ public class MinioOptions
     public int Port { get; set; }
     public string ImageBucket { get; set; }
     public string ThumbnailBucket { get; set; }
+    public int[] ThumbnailWidths { get; set; }
 }
