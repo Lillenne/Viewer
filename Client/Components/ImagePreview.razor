@@ -1,0 +1,82 @@
+﻿@if (Image is not null)
+{
+    <div class="bouncer container hidden-child-button" style="width: max-content; height: max-content;">
+            <MudImage Src="@Image.Url"
+                      Class="rounded-lg"
+                      Style="@(GetStyle(Image))"
+                      ObjectPosition="ObjectPosition.Center"
+                      ObjectFit="ObjectFit.Cover"
+                      Width="@Width"
+                      loading="lazy"
+                      draggable="false"
+                      Fluid="true"
+                      @onclick="@(args => OnClick(Image, args))"/>
+            <MudIconButton Style="z-index: 1; position: absolute; right: 5%; bottom: 5%;"
+                           Size="Size.Large"
+                           Color="Color.Secondary"
+                           Variant="Variant.Text"
+                           Class="hover-button"
+                           Icon="@(GetIcon(Image))"
+                           OnClick="@(() => AddToOrRemoveFromCart(Image))"/>
+            <img src="check-mark.png" width="@GetCheckWidth(Image)" alt="check mark" 
+                 loading="lazy" style="@GetCheckMarkStyle(Image)"/>
+    </div>
+}
+else
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Width="@(GetSkeletonWidth(Width))" Height="@(GetSkeletonHeight(Width))" />
+}
+
+@code {
+    
+    [Parameter]
+    public int Width { get; set; } = 256;
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter] 
+    public ImageId? Image { get; set; }
+    
+    [Parameter] 
+    public EventCallback<IList<ImageId>> ImageSourceChanged { get; set; }
+    
+    [Parameter]
+    public ImagePopUpProvider? PopUpProvider { get; set; }
+    
+    [Parameter]
+    public Cart? Cart { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        StateHasChanged();
+    }
+    private async Task OnClick(ImageId img, MouseEventArgs args)
+    {
+        if (args.CtrlKey)
+        {
+            AddToOrRemoveFromCart(img);
+        }
+        else
+        {
+            if (PopUpProvider is not null)
+                await PopUpProvider.CreatePopUp(img);
+        }
+    }
+
+    private string GetStyle(ImageId img) => Cart is not null && Cart.Images.Contains(img) ? "filter: grayscale(30%);" : string.Empty;
+
+    private void AddToOrRemoveFromCart(ImageId? img) => Cart?.AddOrRemove(img);
+
+    private string GetIcon(ImageId img) => 
+        Cart is null ? string.Empty : Cart.Images.Contains(img) ? Icons.Material.Filled.HorizontalRule : Icons.Material.Filled.Add;
+
+    private string? GetCheckMarkStyle(ImageId img)
+    {
+        var vis = Cart is not null && Cart.Images.Contains(img) ? "visible" : "hidden";
+        return $"z-index: 1; position: absolute; right: 10%; top: 5%; visibility: {vis}";
+    }
+    private int GetCheckWidth(ImageId img) => int.CreateSaturating(Width * 0.1);
+    private string GetSkeletonWidth(int width) => $"{width}px";
+    private string GetSkeletonHeight(int width) => $"{Convert.ToInt32(width * 9.0F / 16F)}px";
+}

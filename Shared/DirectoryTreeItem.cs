@@ -7,6 +7,7 @@ public class DirectoryTreeItem
 {
     public string DirectoryName { get; private set; }
     public IList<DirectoryTreeItem> Subdirectories { get; set; }
+    public int FileCount { get; set; }
 
     public DirectoryTreeItem(string directoryName)
     {

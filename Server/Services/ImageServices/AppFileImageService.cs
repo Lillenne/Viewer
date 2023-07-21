@@ -39,6 +39,7 @@ public class AppFileImageService : IImageService
 
     private static void FillSubdirs(DirectoryTreeItem dir)
     {
+        dir.FileCount = GetImageFiles(dir.DirectoryName).Count();
         foreach (
             var subdir in Directory.EnumerateDirectories(
                 dir.DirectoryName,

@@ -4,6 +4,8 @@
 @using Viewer.Client.ServiceClients
 @using System.Security.Claims
 @inject IImageClient ImageClient
+@inject Cart Cart;
+@inject ImagePopUpProvider iis;
 
 <PageTitle>Index</PageTitle>
 
@@ -25,95 +27,105 @@
     </NotAuthorized>
 </AuthorizeView>
 
-@if (Images is null)
-{
-    /* TODO error text variable, align progress bar center*/
-    <MudContainer MaxWidth="MaxWidth.False" Style="align-content: center">
-        <MudText Align="Align.Center">Are you sure there is anything here? If so, we are trying to find it. Hold tight...</MudText>
-        <MudProgressCircular Indeterminate="true"/>
-    </MudContainer>
-}
-else
-{
-    <MudGrid Justify="Justify.FlexStart">
-        <MudItem xs="3" sm="2" Class="mt-4" Style="display: inline;">
-            <MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column">
-                <MudText Align="Align.Center" Typo="Typo.h6">Notes:</MudText>
-                <MudList>
-                    <MudListItem Text="Click for a preview" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
-                    <MudListItem Text="Ctrl + click to bookmark" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
-                    <MudListItem Text="Use the folder view to navigate" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
-                </MudList>
-                <MudTreeView T="DirectoryTreeItem" Hover="true" Items="_directories" @bind-SelectedValue="@SelectedDirectory">
-                    <ItemTemplate Context="item">
-                        <MudTreeViewItem T="DirectoryTreeItem"
-                                         CanExpand="@ItemHasChildren(item)"
-                                         Icon="@Icons.Material.Filled.Folder"
-                                         Items="@item.Subdirectories.ToHashSet()"
-                                         Text="@item.GetShortName()"
-                                         Value="@item">
-                        </MudTreeViewItem>
-                    </ItemTemplate>
-                </MudTreeView>
-            </MudContainer>
-        </MudItem>
-        <MudItem xs="9" sm="10" Style="display: inline-block">
-            <Gallery Images="@Images"/>
-        </MudItem>
-    </MudGrid>
-}
+<MudGrid Justify="Justify.FlexStart">
+    <MudItem xs="0" sm="2" Class="mt-4" Style="display: inline;">
+        <MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column">
+            <MudText Align="Align.Center" Typo="Typo.h6">Notes:</MudText>
+            <MudList>
+                <MudListItem Text="Click for a preview" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
+                <MudListItem Text="Ctrl + click to bookmark" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
+                <MudListItem Text="Use the folder view to navigate" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small"/>
+            </MudList>
+            <MudTreeView T="DirectoryTreeItem" Hover="true" Items="_directories" @bind-SelectedValue="@_selectedDirectory" @bind-SelectedValue:after="@OnChangeDir">
+                <ItemTemplate Context="item">
+                    <MudTreeViewItem T="DirectoryTreeItem"
+                                     CanExpand="@ItemHasChildren(item)"
+                                     Icon="@Icons.Material.Filled.Folder"
+                                     Items="@item.Subdirectories.ToHashSet()"
+                                     Text="@item.GetShortName()"
+                                     Value="@item">
+                    </MudTreeViewItem>
+                </ItemTemplate>
+            </MudTreeView>
+        </MudContainer>
+    </MudItem>
+    <MudItem xs="12" sm="10" Style="display: inline-block">
+        <div class="d-inline-flex flex-wrap gap-4 m-4" style="width: 100%;">
+            @if (_images is null)
+            {
+                /* TODO error text variable, align progress bar center*/
+                <MudContainer MaxWidth="MaxWidth.False" Style="align-content: center">
+                    <MudText style="display: block;" Align="Align.Center">Are you sure there is anything here? If so, we are trying to find it. Hold tight...</MudText>
+                    <MudProgressCircular style="display: block;" Indeterminate="true"/>
+                </MudContainer>
+            }
+            else if (_selectedDirectory is null || _selectedDirectory.FileCount == 0)
+            {
+                <MudText Align="Align.Center" Typo="Typo.h6">There is nothing here!</MudText>
+            }
+            else
+            { 
+                <MudSlider @bind-Value="@Width" Variant="Variant.Filled" Min="20" Max="1024">
+                    Adjust image size with the slider
+                </MudSlider>
+                @foreach (var img in _images)
+                {
+                    <ImagePreview Image="@img" Cart="@Cart" PopUpProvider="@iis" @bind-Width="@Width"/>
+                }
+            }
+        </div>
+    </MudItem>
+</MudGrid>
 
 
 @code {
-    private int Width => 256; //TODO calculate
+    [CascadingParameter] public Task<AuthenticationState>? AuthState { get; set; }
+
+    private System.Collections.Generic.HashSet<DirectoryTreeItem>? _directories;
     
-    private async Task<string?> GetName() => AuthState is null ? null 
+    private DirectoryTreeItem? _selectedDirectory;
+
+    private Virtualize<ImageId>? _virt;
+    
+    private IReadOnlyList<ImageId> _images;
+    
+    [Parameter]
+    public int Width { get; set; } = 256;
+
+    [Parameter] 
+    public EventCallback<int>? WidthChanged { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        Cart.Images.CollectionChanged += (_, _) => StateHasChanged();
+        _directories = (await ImageClient.GetDirectories()).ToHashSet();
+        _selectedDirectory = _directories?.FirstOrDefault();
+        await OnChangeDir();
+    }
+    
+    private async Task OnChangeDir() 
+    {
+        var req = new GetImagesRequest()
+        {
+            //Directory = string.IsNullOrEmpty(_selectedDirectory?.DirectoryName) ? "/" : _selectedDirectory?.DirectoryName,
+            Directory = _selectedDirectory?.DirectoryName,
+            Width = Width,
+        };
+        _images = await ImageClient.GetImages(req);
+        //await _virt!.RefreshDataAsync();
+    } 
+    
+    //private ValueTask<ItemsProviderResult<IEnumerable<ImageId>>> GetImages(ItemsProviderRequest request)
+    //{
+        //var count = _images is null ? 0 : _selectedDirectory.FileCount / perRow;
+        //var imgs = _images?.Skip(request.StartIndex).Take(request.Count) ?? Enumerable.Empty<ImageId>();
+        //return new ValueTask<ItemsProviderResult<ImageId>>(new ItemsProviderResult<ImageId>(imgs, count));
+    //}
+
+    private async Task<string?> GetName() => AuthState is null ? null
         : (await AuthState).User.Claims
             .FirstOrDefault(n => n.Type.Equals("name", StringComparison.InvariantCultureIgnoreCase))?.Value;
 
-    private IReadOnlyList<ImageId>? _images;
-    private IReadOnlyList<ImageId>? Images 
-    {
-        get => _images;
-        set 
-        {
-            _images = value;
-            StateHasChanged();
-        }
-    }
-    
-    private System.Collections.Generic.HashSet<DirectoryTreeItem>? _directories;
-    
-    private DirectoryTreeItem? _selectedDir;
-
-    private DirectoryTreeItem? SelectedDirectory
-    {
-        get => _selectedDir;
-        set
-        {
-            _selectedDir = value;
-            ChangeFolder(value);
-        }
-    }
-
-    [CascadingParameter] public Task<AuthenticationState>? AuthState { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        _directories = (await ImageClient.GetDirectories().ConfigureAwait(false)).ToHashSet();
-        SelectedDirectory = _directories.FirstOrDefault();
-        Images = await ImageClient.GetImages(new GetImagesRequest() { Directory = SelectedDirectory?.DirectoryName, Width=Width});
-    }
-
-    private async Task ChangeFolder(DirectoryTreeItem? value)
-    {
-        if (value is null)
-        {
-            Images = Array.Empty<ImageId>();
-            return;
-        }
-        Images = await ImageClient.GetImages(new GetImagesRequest() { Directory = value.DirectoryName, Width = Width });
-    }
-
     private static bool ItemHasChildren(DirectoryTreeItem item) => item.Subdirectories.Count > 0;
+    
 }

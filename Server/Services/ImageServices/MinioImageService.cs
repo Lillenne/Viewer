@@ -27,11 +27,14 @@ public class MinioImageService : IImageService
         // TODO minimize calls
 
         // Locate immediate subdirs
+        var fileCount = 0;
         var subdirs = _minio.Minio
             .ListObjectsAsync(new ListObjectsArgs().WithBucket(_minio.ImageBucket).WithPrefix(d.DirectoryName))
             .ToEnumerable()
+            .Select(i => { if (!i.IsDir && MinioImageClient.IsSupportedImage(i.Key)) { fileCount++; } return i; })
             .Where(i => i.IsDir)
             .ToList();
+        d.FileCount = fileCount;
 
         // For each subdir
         foreach (var sdir in subdirs)

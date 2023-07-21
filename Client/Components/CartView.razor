@@ -12,7 +12,6 @@ else
     @foreach (var item in Cart.Images)
     {
         <div style="margin: 10px;" class="gray-hover" @onclick="@(e => Clicked(e, item))">
-            <MudText>@item.Name</MudText>
             <MudImage Fluid="true" Src="@item.Url" Class="rounded-lg"/>
         </div>
     }
@@ -30,6 +29,6 @@ else
         if (obj.CtrlKey)
             Cart.Images.Remove(img);
         else
-            PopUp.CreatePopUp(img);
+            await PopUp.CreatePopUp(img);
     }
 }
