@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Viewer.Server.Services;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
+using Viewer.Shared.Services;
 
 namespace Viewer.Server.Controllers;
 
@@ -22,6 +23,24 @@ public class ImageAccessController : ControllerBase
     public Task<ActionResult<GetImagesResponse>> Post(GetImagesRequest request)
     {
         return Get(request);
+    }
+    
+    [HttpPost("upload")]
+    // TODO make own response with upload success, err, etc
+    public async Task<ActionResult<GetImagesResponse>> PostFiles([FromForm] IEnumerable<IFormFile> files)
+    {
+        try
+        {
+            // TODO ImageUpload Stream instead of byte[]
+            var uploads = files.Select(f => new ImageUpload(f.FileName, f.OpenReadStream()));
+            var resp = await _service.Upload(uploads).ConfigureAwait(false);
+            var r = new GetImagesResponse(resp);
+            return new ActionResult<GetImagesResponse>(r);
+        }
+        catch
+        {
+            return BadRequest();
+        }
     }
 
     [HttpPost("image")]
@@ -63,7 +82,7 @@ public class ImageAccessController : ControllerBase
             var response = await _service.GetImages(request).ConfigureAwait(false);
             return new ActionResult<GetImagesResponse>(response);
         }
-        catch (Exception ex)
+        catch
         {
             return BadRequest();
         }

@@ -54,7 +54,7 @@ public class MinioImageService : IImageService
         if (request.TakeNumber > 0)
             observable = observable.Take(request.TakeNumber); // TODO does this throw if take num > length?
 
-        var closestW = _minio.ThumbnailWidths.MinBy(i => Math.Abs(i - request.Width));
+        var closestW = GetClosestThumbnailWidth(request.Width);
         var imgs = observable
             .ToEnumerable()
             .Where(i => MinioImageClient.IsSupportedImage(i.Key))
@@ -63,10 +63,20 @@ public class MinioImageService : IImageService
             .Select(i => new ImageId()
             {
                 Name = i,
-                Url = _minio.ThumbnailBaseUrl + MinioImageClient.GetThumbnailName(i, closestW)
+                Url = GetThumbnailUrl(i, closestW)
             })
             .ToList();
         return Task.FromResult(new GetImagesResponse() { Images = imgs });
+    }
+    
+    private string GetThumbnailUrl(string i, int closestW)
+    {
+        return _minio.ThumbnailBaseUrl + MinioImageClient.GetThumbnailName(i, closestW);
+    }
+    
+    private int GetClosestThumbnailWidth(int width)
+    {
+        return _minio.ThumbnailWidths.MinBy(i => Math.Abs(i - width));
     }
 
     public async Task<byte[]> GetImageBytes(string name)
@@ -81,26 +91,44 @@ public class MinioImageService : IImageService
         return ms.ToArray();
     }
 
-    public async Task Upload(ImageUpload image)
+    public async Task<ImageId> Upload(ImageUpload image)
     {
         // TODO publish image uploaded event
 
         // Put main file
+        Stream stream;
+        if (image.Image.CanSeek)
+            stream = image.Image;
+        else 
+        {
+            stream = new MemoryStream();
+            await image.Image.CopyToAsync(stream);
+            stream.Seek(0, SeekOrigin.Begin);
+        }
+
         var args = new PutObjectArgs()
             .WithBucket(_minio.ImageBucket)
-            .WithRequestBody(image.Image)
-            .WithFileName(image.Name);
+            .WithStreamData(image.Image)
+            .WithObject(image.Name)
+            .WithObjectSize(image.Image.Length);
         await _minio.Minio.PutObjectAsync(args).ConfigureAwait(false);
         // Make and put thumbnail
+        stream.Seek(0, SeekOrigin.Begin);
         await _minio.MakeThumbnails(image).ConfigureAwait(false);
+        var w = 256;
+        var url = GetThumbnailUrl(image.Name, w);
+        return new ImageId(image.Name, url);
     }
 
-    public async Task Upload(IEnumerable<ImageUpload> images)
+    public async Task<IEnumerable<ImageId>> Upload(IEnumerable<ImageUpload> images)
     {
+        var ids = new List<ImageId>();
         foreach (var img in images)
         {
-            await Upload(img);
+            var id = await Upload(img).ConfigureAwait(false);
+            ids.Add(id);
         }
+        return ids;
     }
 
     public Task<ImageId> GetImage(GetImageRequest request)

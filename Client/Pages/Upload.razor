@@ -1,0 +1,58 @@
+﻿@page "/upload"
+@inject IImageClient Client
+
+<MudText Typo="Typo.h6">Upload!</MudText>
+<InputFile OnChange="@LoadFiles" multiple />
+@if (_isLoading)
+{
+    <MudProgressLinear Value="@Progress" />
+}
+@if (_imgs is not null)
+{
+    @foreach (var img in _imgs)
+    {
+        <img src="@img.Url" height="256px" width="256px" />
+    }
+}
+@* https://learn.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-7.0&pivots=server *@
+
+@code {
+    private IEnumerable<ImageId>? _imgs;
+    private bool _isLoading;
+    private int _total;
+    private int Completed
+    {
+        get => _completed;
+        set
+        {
+            _completed = value;
+            StateHasChanged();
+        }
+    }
+
+    private int _completed;
+
+    private double Progress => (double)Completed / _total;
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        _imgs = null;
+        _isLoading = true;
+        using var content = new MultipartFormDataContent();
+
+        var files = e.GetMultipleFiles(maximumFileCount: 150);
+        foreach (var file in files)
+        {
+            var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 15); // 15 mb
+            var f = new StreamContent(stream);
+            f.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(
+                content: f,
+                name: "\"files\"",
+                fileName: file.Name
+            );
+        }
+
+        _imgs = await Client.Upload(content);
+        _isLoading = false;
+    }
+}

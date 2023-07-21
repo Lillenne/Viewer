@@ -37,12 +37,10 @@ public partial class MinioImageClient
 
     public async Task AddImage(ImageUpload upload, CancellationToken token = default)
     {
-        var ms = new MemoryStream();
-        await ms.WriteAsync(upload.Image, token);
         var put = new PutObjectArgs()
             .WithBucket(ImageBucket)
             .WithObject(upload.Name)
-            .WithStreamData(ms);
+            .WithStreamData(upload.Image);
         await Minio.PutObjectAsync(put, token).ConfigureAwait(false);
         await MakeThumbnails(upload, token);
     }

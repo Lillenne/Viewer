@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using Viewer.Client.Pages;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
+using Viewer.Shared.Services;
 
 namespace Viewer.Client.ServiceClients;
 
@@ -40,5 +41,14 @@ public class ImageClient : IImageClient
             request
         );
         return await response.Content.ReadFromJsonAsync<ImageId>().ConfigureAwait(false);
+    }
+    
+    public async Task<IEnumerable<ImageId>> Upload(MultipartFormDataContent images)
+    {
+        HttpResponseMessage response = await _client.PostAsync(ApiRoutes.ImageAccess.Upload, images);
+        if (!response.IsSuccessStatusCode)
+            return Enumerable.Empty<ImageId>();
+        var items = await response.Content.ReadFromJsonAsync<GetImagesResponse>().ConfigureAwait(false);
+        return items?.Images ?? Enumerable.Empty<ImageId>();
     }
 }

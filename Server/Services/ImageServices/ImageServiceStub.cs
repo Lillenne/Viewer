@@ -41,7 +41,7 @@ public class ImageServiceStub : IImageService
 
     public Task<ImageId> GetImage(GetImageRequest request) => GetImage();
 
-    public Task Upload(ImageUpload image) => Task.CompletedTask;
+    public Task<ImageId> Upload(ImageUpload image) => Task.FromResult(GetImg());
 
-    public Task Upload(IEnumerable<ImageUpload> images) => Task.CompletedTask;
+    public Task<IEnumerable<ImageId>> Upload(IEnumerable<ImageUpload> images) => Task.FromResult(images.Select(_ => GetImg()));
 }

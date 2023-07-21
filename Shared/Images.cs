@@ -1,4 +1,5 @@
 using System.Runtime.Serialization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Viewer.Shared;
 
@@ -10,6 +11,15 @@ public class ImageId
 
     [DataMember(Order = 2)]
     public required string Url { get; init; }
+    
+    public ImageId(){}
+    
+    [SetsRequiredMembers]
+    public ImageId(string name, string url)
+    {
+        Name = name;
+        Url = url;
+    }
 
     public override bool Equals(object? obj)
     {

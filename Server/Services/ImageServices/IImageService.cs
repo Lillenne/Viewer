@@ -9,6 +9,6 @@ public interface IImageService
     Task<GetImagesResponse> GetImages(GetImagesRequest request);
     Task<ImageId> GetImage(GetImageRequest request);
     Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? directoryName);
-    Task Upload(ImageUpload image);
-    Task Upload(IEnumerable<ImageUpload> images);
+    Task<ImageId> Upload(ImageUpload image);
+    Task<IEnumerable<ImageId>> Upload(IEnumerable<ImageUpload> images);
 }

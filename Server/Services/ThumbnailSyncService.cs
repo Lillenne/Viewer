@@ -63,8 +63,7 @@ public class ThumbnailSyncService : BackgroundService
                                 .WithCallbackStream(s => s.CopyTo(ms));
                             _ = await _minio.Minio.GetObjectAsync(args).ConfigureAwait(false);
                             ms.Flush();
-                            var arr = ms.ToArray();
-                            var ul = new ImageUpload() { Name = name, Image = arr };
+                            var ul = new ImageUpload() { Name = name, Image = ms };
                             await _minio.MakeThumbnails(ul, token);
                             return;
                         }

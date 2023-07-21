@@ -54,9 +54,9 @@
     @if (_images is null)
     {
         /* TODO error text variable, align progress bar center*/
-        <MudContainer MaxWidth="MaxWidth.False" Style="align-content: center">
+        <MudContainer class="d-flex flex-column flex-wrap" MaxWidth="MaxWidth.False" Style="align-content: center">
             <MudText style="display: block;" Align="Align.Center">Are you sure there is anything here? If so, we are trying to find it. Hold tight...</MudText>
-            <MudProgressCircular style="display: block;" Indeterminate="true"/>
+            <MudProgressCircular Style="width: 150px; height: 150px; display: block; margin: 3em auto;" Indeterminate="true"/>
         </MudContainer>
     }
     else if (_selectedDirectory is null || _selectedDirectory.FileCount == 0)
@@ -114,25 +114,15 @@
     {
         var req = new GetImagesRequest()
         {
-            //Directory = string.IsNullOrEmpty(_selectedDirectory?.DirectoryName) ? "/" : _selectedDirectory?.DirectoryName,
             Directory = _selectedDirectory?.DirectoryName,
             Width = Width,
         };
         _images = await ImageClient.GetImages(req);
-        //await _virt!.RefreshDataAsync();
     } 
     
-    //private ValueTask<ItemsProviderResult<IEnumerable<ImageId>>> GetImages(ItemsProviderRequest request)
-    //{
-        //var count = _images is null ? 0 : _selectedDirectory.FileCount / perRow;
-        //var imgs = _images?.Skip(request.StartIndex).Take(request.Count) ?? Enumerable.Empty<ImageId>();
-        //return new ValueTask<ItemsProviderResult<ImageId>>(new ItemsProviderResult<ImageId>(imgs, count));
-    //}
-
     private async Task<string?> GetName() => AuthState is null ? null
         : (await AuthState).User.Claims
             .FirstOrDefault(n => n.Type.Equals("name", StringComparison.InvariantCultureIgnoreCase))?.Value;
 
     private static bool ItemHasChildren(DirectoryTreeItem item) => item.Subdirectories.Count > 0;
-    
 }

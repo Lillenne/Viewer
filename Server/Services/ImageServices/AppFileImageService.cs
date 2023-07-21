@@ -146,17 +146,27 @@ public class AppFileImageService : IImageService
         }
     }
 
-    public async Task Upload(ImageUpload image)
+    public async Task<ImageId> Upload(ImageUpload image)
     {
         var path = Path.Combine(BaseDirectory, image.Name);
-        await File.WriteAllBytesAsync(path, image.Image);
+        var ms = new MemoryStream();
+        await image.Image.CopyToAsync(ms).ConfigureAwait(false);
+        var bytes = ms.ToArray();
+        await File.WriteAllBytesAsync(path, bytes).ConfigureAwait(false);
+        using var img = Image.Load(bytes);
+        img.ResizeImage(256, -1);
+        var str = img.ToBase64String(PngFormat.Instance);
+        return new ImageId(image.Name, str);
     }
 
-    public async Task Upload(IEnumerable<ImageUpload> images)
+    public async Task<IEnumerable<ImageId>> Upload(IEnumerable<ImageUpload> images)
     {
+        var uls = new List<ImageId>();
         foreach (var img in images)
         {
-            await Upload(img);
+            var ul = await Upload(img).ConfigureAwait(false);
+            uls.Add(ul);
         }
+        return uls;
     }
 }

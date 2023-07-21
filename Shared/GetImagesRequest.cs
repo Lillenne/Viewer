@@ -1,8 +1,16 @@
 namespace Viewer.Shared.Requests;
+using System.Diagnostics.CodeAnalysis;
 
 public class GetImagesResponse
 {
     public required IReadOnlyList<ImageId> Images { get; init; }
+    public GetImagesResponse(){}
+
+    [SetsRequiredMembers]
+    public GetImagesResponse(IEnumerable<ImageId> images)
+    {
+        Images = images.ToList().AsReadOnly();
+    }
 }
 
 public class GetImagesRequest

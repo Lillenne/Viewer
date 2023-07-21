@@ -22,6 +22,9 @@
         <MudIconButton Icon="@Icons.Material.Filled.AppRegistration"
                        Color="Color.Inherit"
                        @onclick="@ToRegistration"/>
+        <MudIconButton Icon="@Icons.Material.Filled.UploadFile"
+                       Color="Color.Inherit"
+                       @onclick="@ToUpload"/>
         <MudSpacer/>
         <MudText Typo="Typo.h6">Family photos</MudText>
         <MudSpacer/>
@@ -52,4 +55,5 @@
     private void ToHome() => Nav.NavigateTo(Routes.Home);
     private void ToLogin() => Nav.NavigateTo(Routes.Login);
     private void ToRegistration() => Nav.NavigateTo(Routes.Register);
+    private void ToUpload() => Nav.NavigateTo(Routes.Upload);
 }
