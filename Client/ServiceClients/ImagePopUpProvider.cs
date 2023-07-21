@@ -27,9 +27,13 @@ public class ImagePopUpProvider
             }
         );
         var disp = src is not null ? src : img;
-        var opts = new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true, NoHeader = true };
-        var parameters = new DialogParameters();
-        parameters.Add("Source", disp);
+        var opts = new DialogOptions()
+        {
+            CloseOnEscapeKey = true,
+            CloseButton = true,
+            NoHeader = true
+        };
+        var parameters = new DialogParameters { { "Source", disp } };
         _ = _ds.Show<ImagePopUp>(string.Empty, parameters, opts);
     }
 }

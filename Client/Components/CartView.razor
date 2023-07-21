@@ -3,19 +3,21 @@
 @inject ImagePopUpProvider PopUp;
 @inject Cart Cart;
 
-@if (!Cart.Images.Any())
-{
-    <MudText Align="Align.Center" Typo="Typo.body1">There are no images in the cart!</MudText> 
-}
-else
-{
-    @foreach (var item in Cart.Images)
+<MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column">
+    @if (!Cart.Images.Any())
     {
-        <div style="margin: 10px;" class="gray-hover" @onclick="@(e => Clicked(e, item))">
-            <MudImage Fluid="true" Src="@item.Url" Class="rounded-lg"/>
-        </div>
+        <MudText Align="Align.Center" Typo="Typo.body1">There are no images in the cart!</MudText> 
     }
-}
+    else
+    {
+        @foreach (var item in Cart.Images)
+        {
+            <div style="margin: 10px;" class="gray-hover" @onclick="@(e => Clicked(e, item))">
+                <MudImage style="width: 100%" Src="@item.Url" Class="rounded-lg"/>
+            </div>
+        }
+    }
+</MudContainer>
 
 @code {
     protected override void OnInitialized()

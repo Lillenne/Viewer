@@ -1,0 +1,15 @@
+﻿<MudButton StartIcon="@Icons.Material.Filled.Folder" Color="@Color.Inherit" @onclick="@ToggleOpen">Toggle folder view</MudButton>
+
+@code {
+    [Parameter]
+    public bool Open { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OpenChanged { get; set; }
+
+    private void ToggleOpen()
+    {
+        Open = !Open;
+        OpenChanged.InvokeAsync(Open);
+    }
+}

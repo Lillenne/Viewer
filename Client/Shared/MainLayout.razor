@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @inject IAuthClient Auth
+@inject NavigationManager Nav
 
 <MudThemeProvider IsDarkMode="true"/>
 <MudDialogProvider
@@ -12,6 +13,15 @@
 
 <MudLayout>
     <MudAppBar>
+        <MudIconButton Icon="@Icons.Material.Filled.Home"
+                       Color="Color.Inherit"
+                       @onclick="@ToHome"/>
+        <MudIconButton Icon="@Icons.Material.Filled.Login"
+                       Color="Color.Inherit"
+                       @onclick="@ToLogin"/>
+        <MudIconButton Icon="@Icons.Material.Filled.AppRegistration"
+                       Color="Color.Inherit"
+                       @onclick="@ToRegistration"/>
         <MudSpacer/>
         <MudText Typo="Typo.h6">Family photos</MudText>
         <MudSpacer/>
@@ -22,15 +32,8 @@
                        Color="Color.Inherit"
                        @onclick="@ToggleCart"/>
     </MudAppBar>
-    <MudDrawer Anchor="Anchor.Left" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Mini">
-        <MudNavMenu>
-            <MudNavLink Icon="@Icons.Material.Filled.Home" Href="@Routes.Home">Home</MudNavLink>
-            <MudNavLink Icon="@Icons.Material.Filled.Login" Href="@Routes.Login">Login</MudNavLink>
-            <MudNavLink Icon="@Icons.Material.Filled.AppRegistration" Href="@Routes.Register">Register</MudNavLink>
-        </MudNavMenu>
-    </MudDrawer>
     
-    <MudDrawer @bind-Open="@_cartOpen" Anchor="Anchor.Right" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Persistent">
+    <MudDrawer @bind-Open="@_cartOpen" Anchor="Anchor.Right" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Persistent" Width="35em">
         <CartView />
     </MudDrawer>
     
@@ -45,4 +48,8 @@
     private bool _cartOpen = true;
 
     private void ToggleCart() => _cartOpen = !_cartOpen;
+
+    private void ToHome() => Nav.NavigateTo(Routes.Home);
+    private void ToLogin() => Nav.NavigateTo(Routes.Login);
+    private void ToRegistration() => Nav.NavigateTo(Routes.Register);
 }
