@@ -2,7 +2,6 @@ using System.Net.Http.Json;
 using Viewer.Client.Pages;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
-using Viewer.Shared.Services;
 
 namespace Viewer.Client.ServiceClients;
 

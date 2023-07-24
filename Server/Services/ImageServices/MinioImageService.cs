@@ -71,7 +71,7 @@ public class MinioImageService : IImageService
     
     private string GetThumbnailUrl(string i, int closestW)
     {
-        return _minio.ThumbnailBaseUrl + MinioImageClient.GetThumbnailName(i, closestW);
+        return "http://" + _minio.ThumbnailBaseUrl + MinioImageClient.GetThumbnailName(i, closestW);
     }
     
     private int GetClosestThumbnailWidth(int width)
@@ -134,7 +134,7 @@ public class MinioImageService : IImageService
     public Task<ImageId> GetImage(GetImageRequest request)
     {
         return Task.FromResult(
-            new ImageId() { Name = request.Name, Url = _minio.ImageBaseUrl + request.Name }
+            new ImageId() { Name = request.Name, Url = "http://" + _minio.ImageBaseUrl + request.Name }
         );
     }
 }

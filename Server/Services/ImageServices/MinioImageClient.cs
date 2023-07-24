@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Minio;
 using Viewer.Server.Models;
 using Viewer.Shared.Services;
@@ -19,9 +20,9 @@ public partial class MinioImageClient
     {
         ImageBucket = minioConfig.Value.ImageBucket;
         ImageBaseUrl =
-            $"http://{minioConfig.Value.Endpoint}:{minioConfig.Value.Port}/{minioConfig.Value.ImageBucket}/";
+            $"{minioConfig.Value.Endpoint}/{minioConfig.Value.ImageBucket}/";
         ThumbnailBaseUrl =
-            $"http://{minioConfig.Value.Endpoint}:{minioConfig.Value.Port}/{minioConfig.Value.ThumbnailBucket}/";
+            $"{minioConfig.Value.Endpoint}/{minioConfig.Value.ThumbnailBucket}/";
         ThumbnailBucket = minioConfig.Value.ThumbnailBucket;
         ThumbnailWidths = minioConfig.Value.ThumbnailWidths ?? new int[] { 128 };
         if (ThumbnailWidths.Count == 0)

@@ -10,4 +10,5 @@ public class MinioOptions
     public string ImageBucket { get; set; }
     public string ThumbnailBucket { get; set; }
     public int[] ThumbnailWidths { get; set; }
+    public bool UseHttps { get; set;}
 }
