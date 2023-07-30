@@ -11,4 +11,5 @@ public class MinioOptions
     public string ThumbnailBucket { get; set; }
     public int[] ThumbnailWidths { get; set; }
     public bool UseHttps { get; set;}
+    public int DefaultLinkExpiryTimeSeconds { get; set; } = 60 * 60 * 24;
 }

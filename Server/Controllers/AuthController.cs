@@ -34,6 +34,7 @@ public class AuthController : ControllerBase
     [HttpPost("change-pwd")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
+        return BadRequest("Not taking sign ups yet");
         try
         {
             await _authService.ChangePassword(request).ConfigureAwait(false);
@@ -48,6 +49,7 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(UserRegistration request)
     {
+        return BadRequest("Not taking sign ups yet");
         try
         {
             await _authService.Register(request).ConfigureAwait(false);

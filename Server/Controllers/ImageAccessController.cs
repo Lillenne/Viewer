@@ -12,10 +12,12 @@ namespace Viewer.Server.Controllers;
 [Route("api/[controller]")]
 public class ImageAccessController : ControllerBase
 {
+    private readonly ILogger<ImageAccessController> _logger;
     private readonly IImageService _service;
 
-    public ImageAccessController(IImageService service)
+    public ImageAccessController(ILogger<ImageAccessController> logger, IImageService service)
     {
+        _logger = logger;
         _service = service;
     }
 
@@ -29,6 +31,7 @@ public class ImageAccessController : ControllerBase
     // TODO make own response with upload success, err, etc
     public async Task<ActionResult<GetImagesResponse>> PostFiles([FromForm] IEnumerable<IFormFile> files)
     {
+        return BadRequest();
         try
         {
             // TODO ImageUpload Stream instead of byte[]
@@ -63,9 +66,18 @@ public class ImageAccessController : ControllerBase
         [FromBody] string? dir
     )
     {
-        var res = await _service.GetDirectories(dir ?? string.Empty).ConfigureAwait(false);
-        return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(res);
+        try
+        {
+            var res = await _service.GetDirectories(dir ?? ROOT_DIR).ConfigureAwait(false);
+            return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(res);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest();
+        }
     }
+
+    private const string ROOT_DIR = "/";
 
     [HttpGet("dirs")]
     public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> GetDirectories()
