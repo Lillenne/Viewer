@@ -28,5 +28,6 @@ public static class ApiRoutes
         public const string Image = $"{Base}/image";
         public const string Dirs = $"{Base}/dirs";
         public const string Upload = $"{Base}/upload";
+        public const string? Download = $"{Base}/download";
     }
 }

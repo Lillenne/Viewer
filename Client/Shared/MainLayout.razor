@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @inject IAuthClient Auth
 @inject NavigationManager Nav
+@inject IImageClient Client
 
 <MudThemeProvider IsDarkMode="true"/>
 <MudDialogProvider
@@ -29,16 +30,18 @@
         <MudText Typo="Typo.h6">Family photos</MudText>
         <MudSpacer/>
         <MudIconButton Icon="@Icons.Material.Filled.Logout"
-        Color="Color.Inherit"
-        @onclick="@Auth.SignOut" />
+                       Color="Color.Inherit"
+                       @onclick="@Auth.SignOut" />
         <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart"
                        Color="Color.Inherit"
                        @onclick="@ToggleCart"/>
     </MudAppBar>
     
-    <MudDrawer @bind-Open="@_cartOpen" Anchor="Anchor.Right" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Persistent" Width="35em">
-        <CartView />
-    </MudDrawer>
+
+@* Cart drawer *@
+<MudDrawer @bind-Open="@_cartOpen" Anchor="Anchor.Right" ClipMode="DrawerClipMode.Docked" Variant="DrawerVariant.Persistent" Width="35em">
+    <CartView DownloadCallback="Download" />
+</MudDrawer>
     
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.False">
@@ -51,9 +54,17 @@
     private bool _cartOpen = true;
 
     private void ToggleCart() => _cartOpen = !_cartOpen;
-
     private void ToHome() => Nav.NavigateTo(Routes.Home);
     private void ToLogin() => Nav.NavigateTo(Routes.Login);
     private void ToRegistration() => Nav.NavigateTo(Routes.Register);
     private void ToUpload() => Nav.NavigateTo(Routes.Upload);
+    
+    private async Task? Download(Cart arg)
+    {
+        var req = new DownloadImagesRequest()
+        {
+            Images = arg.Images.Select(i => new GetImageRequest { Width = -1, Height = -1, Name = i.Name })
+        };
+        await Client.Download(req);
+    }
 }

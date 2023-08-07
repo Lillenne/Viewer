@@ -93,7 +93,7 @@ public partial class MinioImageClient
             }
             catch
             {
-                // object does not exist and needs to e created
+                // object does not exist and needs to be created
             }
             var h = Convert.ToInt32(w * hwr);
             using var resize = img.Clone(i => i.Resize(w, h));

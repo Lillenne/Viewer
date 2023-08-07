@@ -50,4 +50,15 @@ public class ImageClient : IImageClient
         var items = await response.Content.ReadFromJsonAsync<GetImagesResponse>().ConfigureAwait(false);
         return items?.Images ?? Enumerable.Empty<ImageId>();
     }
+
+    public async Task Download(DownloadImagesRequest request)
+    {
+        var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Download, request);
+        if (response.IsSuccessStatusCode)
+        {
+            
+        }
+            return; 
+        // TODO notify user. Popup maybe?
+    }
 }

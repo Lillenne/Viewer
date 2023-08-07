@@ -25,6 +25,6 @@ public class DirectoryTreeItem
 
     public string GetShortName() =>
         !string.IsNullOrEmpty(DirectoryName)
-        ? Path.GetFileName(DirectoryName.AsSpan(0, DirectoryName.Length - 1)).ToString()
-        : "Root";
+        ? (DirectoryName.Length == 1 ? DirectoryName : Path.GetFileName(DirectoryName.AsSpan(0, DirectoryName.Length - 1)).ToString())
+        : "/";
 }

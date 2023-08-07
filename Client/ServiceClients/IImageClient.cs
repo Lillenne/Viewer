@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Viewer.Shared;
 using Viewer.Shared.Requests;
 
@@ -9,4 +10,5 @@ public interface IImageClient
     public Task<IReadOnlyList<ImageId>> GetImages(GetImagesRequest request);
     public Task<ImageId?> GetImage(GetImageRequest request);
     public Task<IEnumerable<ImageId>> Upload(MultipartFormDataContent images);
+    Task Download(DownloadImagesRequest request);
 }

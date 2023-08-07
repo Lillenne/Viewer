@@ -6,10 +6,11 @@
 <MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column">
     @if (!Cart.Images.Any())
     {
-        <MudText Align="Align.Center" Typo="Typo.body1">There are no images in the cart!</MudText> 
+        <MudText Align="Align.Center" Typo="Typo.body1">There are no images in the cart!</MudText>
     }
     else
     {
+        <MudButton Variant="Variant.Filled" FullWidth="true" OnClick="InvokeCallback">Download</MudButton>
         @foreach (var item in Cart.Images)
         {
             <div style="margin: 10px;" class="gray-hover" @onclick="@(e => Clicked(e, item))">
@@ -20,6 +21,11 @@
 </MudContainer>
 
 @code {
+
+    [Parameter]
+    public Func<Cart, Task?>? DownloadCallback { get; set; }
+    public EventCallback<Func<Cart, Task>>? DownloadCallbackChanged { get; set; }
+    
     protected override void OnInitialized()
     {
         Cart.Images.CollectionChanged += (_, _) => StateHasChanged();
@@ -33,4 +39,12 @@
         else
             await PopUp.CreatePopUp(img);
     }
+
+    private async Task InvokeCallback()
+    {
+        if (DownloadCallback is null || Cart is null)
+            return;
+        await DownloadCallback.Invoke(Cart)!;
+    }
+
 }

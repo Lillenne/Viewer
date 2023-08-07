@@ -30,3 +30,16 @@ public class GetImageRequest
     public int Height { get; init; }
     public required string Name { get; init; }
 }
+
+public class DownloadImagesRequest
+{
+    public required IEnumerable<GetImageRequest> Images { get; init; }
+
+    public DownloadImagesRequest(){}
+    
+    [SetsRequiredMembers]
+    public DownloadImagesRequest(IEnumerable<GetImageRequest> images)
+    {
+        Images = images;
+    }
+}
