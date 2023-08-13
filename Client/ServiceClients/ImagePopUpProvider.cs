@@ -1,7 +1,6 @@
 using MudBlazor;
-using Viewer.Client;
+using Viewer.Client.Components;
 using Viewer.Shared;
-using Viewer.Shared.Requests;
 
 namespace Viewer.Client.ServiceClients;
 
@@ -16,17 +15,17 @@ public class ImagePopUpProvider
         _ds = ds;
     }
 
-    public async Task CreatePopUp(ImageId img)
+    public async Task CreatePopUp(NamedUri img)
     {
         var src = await _client.GetImage(
             new GetImageRequest()
             {
-                Name = img.Name,
+                Id = img.Id,
                 Width = -1,
                 Height = -1,
             }
         );
-        var disp = src is not null ? src : img;
+        var disp = src ?? img;
         var opts = new DialogOptions()
         {
             CloseOnEscapeKey = true,

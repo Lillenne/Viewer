@@ -1,14 +1,14 @@
+using Viewer.Server.Models;
 using Viewer.Shared;
-using Viewer.Shared.Requests;
-using Viewer.Shared.Services;
 
-namespace Viewer.Server.Services;
+namespace Viewer.Server.Services.ImageServices;
 
 public interface IImageService
 {
-    Task<GetImagesResponse> GetImages(GetImagesRequest request);
-    Task<ImageId> GetImage(GetImageRequest request);
+    Task<GetImagesResponse> GetImageIds(GetImagesRequest request);
+    Task<NamedUri> GetImageId(GetImageRequest request);
+    Task<NamedUri> CreateArchive(IEnumerable<GetImageRequest> images);
     Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? directoryName);
-    Task<ImageId> Upload(ImageUpload image);
-    Task<IEnumerable<ImageId>> Upload(IEnumerable<ImageUpload> images);
+    Task<NamedUri> Upload(ImageUpload upload);
+    Task<IEnumerable<NamedUri>> Upload(IEnumerable<ImageUpload> images);
 }

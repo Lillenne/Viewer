@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
-using Viewer.Client.Pages;
+using Microsoft.AspNetCore.Components.Forms;
 using Viewer.Shared;
-using Viewer.Shared.Requests;
 
 namespace Viewer.Client.ServiceClients;
 
@@ -23,32 +22,48 @@ public class ImageClient : IImageClient
                 ?? Array.Empty<DirectoryTreeItem>();
     }
 
-    public async Task<IReadOnlyList<ImageId>> GetImages(GetImagesRequest request)
+    public async Task<IReadOnlyList<NamedUri>> GetImages(GetImagesRequest request)
     {
         var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Base, request);
         return !response.IsSuccessStatusCode
-            ? Array.Empty<ImageId>()
+            ? Array.Empty<NamedUri>()
             : (
                 await response.Content.ReadFromJsonAsync<GetImagesResponse>().ConfigureAwait(false)
-            )?.Images ?? Array.Empty<ImageId>();
+            )?.Images ?? Array.Empty<NamedUri>();
     }
 
-    public async Task<ImageId?> GetImage(GetImageRequest request)
+    public async Task<NamedUri?> GetImage(GetImageRequest request)
     {
         HttpResponseMessage response = await _client.PostAsJsonAsync(
             ApiRoutes.ImageAccess.Image,
             request
         );
-        return await response.Content.ReadFromJsonAsync<ImageId>().ConfigureAwait(false);
+        return await response.Content.ReadFromJsonAsync<NamedUri>().ConfigureAwait(false);
     }
     
-    public async Task<IEnumerable<ImageId>> Upload(MultipartFormDataContent images)
+    public async Task<IEnumerable<NamedUri>> Upload(UploadHeader header, IEnumerable<IBrowserFile> files)
     {
-        HttpResponseMessage response = await _client.PostAsync(ApiRoutes.ImageAccess.Upload, images);
+        using var content = new MultipartFormDataContent();
+        var json = JsonContent.Create<UploadHeader>(header); 
+        content.Add(json, "header");
+
+        foreach (var file in files)
+        {
+            var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 20); // 20 mb
+            var f = new StreamContent(stream);
+            f.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(
+                content: f,
+                name: "\"files\"",
+                fileName: file.Name
+            );
+        }
+        
+        HttpResponseMessage response = await _client.PostAsync(ApiRoutes.ImageAccess.Upload, content);
         if (!response.IsSuccessStatusCode)
-            return Enumerable.Empty<ImageId>();
+            return Enumerable.Empty<NamedUri>();
         var items = await response.Content.ReadFromJsonAsync<GetImagesResponse>().ConfigureAwait(false);
-        return items?.Images ?? Enumerable.Empty<ImageId>();
+        return items?.Images ?? Enumerable.Empty<NamedUri>();
     }
 
     public async Task Download(DownloadImagesRequest request)

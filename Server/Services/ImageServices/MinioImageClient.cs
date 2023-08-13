@@ -1,25 +1,27 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Minio;
-using Viewer.Server.Models;
-using Viewer.Shared;
-using Viewer.Shared.Services;
+using Minio.DataModel;
+using Minio.DataModel.Tags;
+using Viewer.Server.Configuration;
 
-namespace Viewer.Server.Services;
+namespace Viewer.Server.Services.ImageServices;
 
 public partial class MinioImageClient
 {
     public IMinioClient Minio { get; }
     public string ImageBucket { get; }
     public string ThumbnailBucket { get; }
+    public string ArchiveBucket { get; }
     public IReadOnlyList<int> ThumbnailWidths { get; }
     public int DefaultLinkExpiryTimeSeconds { get;}
-
+    
     public MinioImageClient(IOptions<MinioOptions> minioConfig)
     {
         DefaultLinkExpiryTimeSeconds = minioConfig.Value.DefaultLinkExpiryTimeSeconds;
         ImageBucket = minioConfig.Value.ImageBucket;
         ThumbnailBucket = minioConfig.Value.ThumbnailBucket;
+        ArchiveBucket = minioConfig.Value.ArchiveBucket;
         ThumbnailWidths = minioConfig.Value.ThumbnailWidths ?? new int[] { 128 };
         if (ThumbnailWidths.Count == 0)
         {
@@ -32,56 +34,18 @@ public partial class MinioImageClient
             .WithSSL(minioConfig.Value.UseHttps)
             .Build();
     }
-
-    public async Task AddImage(ImageUpload upload, CancellationToken token = default)
-    {
-        var put = new PutObjectArgs()
-            .WithBucket(ImageBucket)
-            .WithObject(upload.Name)
-            .WithStreamData(upload.Image);
-        await Minio.PutObjectAsync(put, token).ConfigureAwait(false);
-        await MakeThumbnails(upload, token);
-    }
     
-    public async Task<ImageId> AddImageId(ImageUpload upload, CancellationToken token = default)
-    {
-        await AddImage(upload, token).ConfigureAwait(false);
-        var name = GetThumbnailName(upload.Name, ThumbnailWidths.Max());
-        var psa = new PresignedGetObjectArgs()
-        .WithBucket(ThumbnailBucket)
-        .WithObject(name)
-        .WithExpiry(DefaultLinkExpiryTimeSeconds);
-        var pso = await Minio.PresignedGetObjectAsync(psa).ConfigureAwait(false);
-        return new ImageId(upload.Name, pso);
-    }
+    public static bool IsThumbnail(string path) => ThumbnailName().IsMatch(path);
+    public static string AppendThumbnailTag(string name, int w) => $"{name}-w{w}";
+    public static string RemoveThumbnailTag(string path) => ThumbnailName().Replace(path, "$1");
     
-    public async Task<ImageId> GetPresignedUrl(string name, PresignedGetObjectArgs args)
+    public async Task MakeThumbnails(string imgId, Stream data, CancellationToken token = default)
     {
-        var url = await Minio.PresignedGetObjectAsync(args).ConfigureAwait(false);
-        return new ImageId(name, url);
-    }
-
-    public static string GetThumbnailName(string path, int w)
-    {
-        var ext = Path.GetExtension(path);
-        var idx = path.IndexOf(ext);
-        var woExt = path.Substring(0, idx);
-        return $"{woExt}-w{w}{ext}";
-    }
-
-    public static bool IsThumbnail(string path) 
-        => IsSupportedImage(path) && ThumbnailName().IsMatch(path);
-
-    public static string RemoveThumbnailTag(string path) 
-        => ThumbnailName().Replace(path, "$1$2");
-
-    public async Task MakeThumbnails(ImageUpload upload, CancellationToken token = default)
-    {
-        using var img = await Image.LoadAsync(upload.Image, token);
+        using var img = await Image.LoadAsync(data, token).ConfigureAwait(false );
         var hwr = (float)img.Height / img.Width;
         foreach (var w in ThumbnailWidths)
         {
-            var name = GetThumbnailName(upload.Name, w);
+            var name = AppendThumbnailTag(imgId, w);
             try
             {
                 var existsArgs = new StatObjectArgs()
@@ -98,33 +62,52 @@ public partial class MinioImageClient
             var h = Convert.ToInt32(w * hwr);
             using var resize = img.Clone(i => i.Resize(w, h));
             using var ms = new MemoryStream();
-            await resize.SaveAsPngAsync(ms, cancellationToken: token);
-            ms.Flush();
+            await resize.SaveAsWebpAsync(ms, cancellationToken: token).ConfigureAwait(false);
+            await ms.FlushAsync(token).ConfigureAwait(false);
             _ = ms.Seek(0, SeekOrigin.Begin);
             var args = new PutObjectArgs()
                 .WithBucket(ThumbnailBucket)
                 .WithObject(name)
                 .WithObjectSize(ms.Length)
                 .WithStreamData(ms)
-                .WithContentType("image/png");
-            await Minio.PutObjectAsync(args, token);
+                .WithContentType("image/webp");
+            await Minio.PutObjectAsync(args, token).ConfigureAwait(false);
         }
     }
 
-    public static bool IsSupportedImage(string key)
+    [GeneratedRegex("(.*)-w\\d+", RegexOptions.IgnoreCase, "en-US")]
+    private static partial Regex ThumbnailName();
+
+    public Task<ObjectStat> GetThumbnailStat(string name, CancellationToken token)
     {
-        return SupportedExtensions.Any(ext => key.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+        var existsArgs = new StatObjectArgs()
+            .WithBucket(ThumbnailBucket)
+            .WithObject(name);
+        return Minio.StatObjectAsync(existsArgs, token);
+    }
+    public Task<ObjectStat> GetImageStat(string name, CancellationToken token)
+    {
+        var existsArgs = new StatObjectArgs()
+            .WithBucket(ImageBucket)
+            .WithObject(name);
+        return Minio.StatObjectAsync(existsArgs, token);
     }
 
-    private static readonly string[] SupportedExtensions =
+    public async Task GetImageAndMakeThumbnails(string name, CancellationToken token)
     {
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".tif",
-        ".tiff"
-    };
-
-    [GeneratedRegex("(.*)-w\\d+(.*)", RegexOptions.IgnoreCase, "en-US")]
-    private static partial Regex ThumbnailName();
+        using var ms = new MemoryStream();
+        var args = new GetObjectArgs()
+            .WithBucket(ImageBucket)
+            .WithObject(name)
+            // ReSharper disable once AccessToDisposedClosure
+            // Disable warning - closure will be invoked during the using statement @ the GetObjectAsync call
+            .WithCallbackStream(async (s, t) => await s.CopyToAsync(ms, t).ConfigureAwait(false));
+        var obj = await Minio.GetObjectAsync(args, token).ConfigureAwait(false);
+        if (obj is null)
+            throw new InvalidOperationException(
+                "Attempted to create thumbnail for non-existent object");
+        await ms.FlushAsync(token).ConfigureAwait(false);
+        ms.Seek(0, SeekOrigin.Begin);
+        await MakeThumbnails(name, ms, token).ConfigureAwait(false);
+    }
 }

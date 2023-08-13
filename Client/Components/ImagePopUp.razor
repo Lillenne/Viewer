@@ -1,5 +1,4 @@
-@namespace Viewer.Client
-@using Viewer.Shared
+@namespace Viewer.Client.Components
 @inject Cart Cart;
 
 <MudDialog>
@@ -11,7 +10,7 @@
             }
             else
             {
-                <MudImage Src="@Source.Url" Alt="The image you clicked on" ObjectFit="@ObjectFit.Contain" Fluid="true" Style="max-height: 1000px" />
+                <MudImage Src="@Source.Uri" Alt="The image you clicked on" ObjectFit="@ObjectFit.Contain" Fluid="true" Style="max-height: 1000px" />
             }
         </MudContainer>
     </DialogContent>
@@ -24,7 +23,7 @@
 
 @code {
     [CascadingParameter] MudDialogInstance? MudDialogInstance { get; set; }
-    [Parameter] public ImageId? Source { get; set; }
+    [Parameter] public NamedUri? Source { get; set; }
     private string AddOrRemoveMessage => Source is null ? "Image not found!" : (Cart.ContainsSimilar(Source.Name) ? "Remove from cart" : "Add to cart");
 
     protected override void OnParametersSet()
