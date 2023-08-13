@@ -1,13 +1,21 @@
-namespace Viewer.Shared.Requests;
 using System.Diagnostics.CodeAnalysis;
+
+namespace Viewer.Shared;
+
+public class ChangePasswordRequest
+{
+    public required string UserId { get; init; }
+    public required string OldPassword { get; init; }
+    public required string NewPassword { get; init; }
+}
 
 public class GetImagesResponse
 {
-    public required IReadOnlyList<ImageId> Images { get; init; }
+    public required IReadOnlyList<NamedUri> Images { get; init; }
     public GetImagesResponse(){}
 
     [SetsRequiredMembers]
-    public GetImagesResponse(IEnumerable<ImageId> images)
+    public GetImagesResponse(IEnumerable<NamedUri> images)
     {
         Images = images.ToList().AsReadOnly();
     }
@@ -28,7 +36,7 @@ public class GetImageRequest
 {
     public int Width { get; init; }
     public int Height { get; init; }
-    public required string Name { get; init; }
+    public required Guid Id { get; init; }
 }
 
 public class DownloadImagesRequest

@@ -18,6 +18,12 @@ builder.Services.Configure<JwtOptions>(config.GetSection("JwtSettings"));
 builder.Services.Configure<MinioOptions>(config.GetSection("Minio"));
 builder.Services.AddTransient<MinioImageClient>();
 builder.Services.AddHostedService<ThumbnailSyncService>();
+builder.Services.AddScoped<IImageService, MinioImageService>();
+
+// Jwt
+builder.Services.AddScoped<IClaimsParser,JwtClaimsParser>();
+builder.Services.AddScoped<IAuthService, JwtAuthService>();
+builder.Services.Configure<JwtOptions>(config.GetSection("JwtSettings"));
 builder.Services
     .AddAuthentication(o =>
     {
@@ -39,6 +45,7 @@ builder.Services
             ValidateAudience = true,
             ValidateLifetime = false, // TODO
             ValidateIssuerSigningKey = true,
+            NameClaimType = JwtRegisteredClaimNames.Name,
         };
     });
 

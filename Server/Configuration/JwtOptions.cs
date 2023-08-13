@@ -1,8 +1,7 @@
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Viewer.Server.Controllers;
+namespace Viewer.Server.Configuration;
 
 public class JwtOptions
 {

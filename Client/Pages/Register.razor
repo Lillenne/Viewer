@@ -1,5 +1,5 @@
 @page "/register"
-@using Viewer.Shared.Dtos
+@using Viewer.Shared.Users
 @inject IAuthClient Client
 @inject NavigationManager Nav
 
@@ -14,6 +14,7 @@
             <MudTextField InputType="InputType.Text" Variant="Variant.Text" Label="Username" Placeholder="kool_cats62" HelperText="Enter your username..." @bind-Value="@Info.Username" For="() => Info.Username"/>
             <PasswordBox @bind-Value="@Info.Password" For="() => Info.Password"/>
             <PasswordBox @bind-Value="@Info.ConfirmPassword" For="() => Info.ConfirmPassword"/>
+            <MudTextField InputType="InputType.Telephone" Variant="Variant.Text" Label="Phone" Placeholder="5554443333" HelperText="Enter your phone number..." @bind-Value="@Info.PhoneNumber" For="() => Info.PhoneNumber"></MudTextField>
             <MudContainer Class="d-flex flex-row justify-content-evenly mt-4 mb-4">
                 <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Reset">Reset</MudButton>
                 <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Submit</MudButton>
