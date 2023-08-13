@@ -1,4 +1,4 @@
-namespace Viewer.Client.Pages;
+namespace Viewer.Client;
 
 public static class Routes
 {

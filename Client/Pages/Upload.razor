@@ -1,58 +1,69 @@
 ﻿@page "/upload"
+@using Viewer.Shared.Users
 @inject IImageClient Client
+@inject ImagePopUpProvider PopUpper
 
 <MudText Typo="Typo.h6">Upload!</MudText>
-<InputFile OnChange="@LoadFiles" multiple />
-@if (_isLoading)
+<MudText>Select files to upload:</MudText>
+<InputFile OnChange="@StoreFiles" multiple />
+
+@if (_files is not null)
 {
-    <MudProgressLinear Value="@Progress" />
+    <EditForm Model="@_model" OnValidSubmit="Submit">
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+
+        <MudTextField @bind-Value="@_model.Prefix" Variant="Variant.Text" Placeholder="Directory..." HelperText="Directory"
+                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Folder"/>
+        @foreach ((UploadItemHeader header, IBrowserFile file) item in _model.Items.Zip(_files))
+        {
+            <MudText>@item.file.Name:</MudText>
+            <MudRadioGroup @bind-SelectedOption="@item.header.Visibility">
+                <MudRadio Option="@Visibility.Public" Color="Color.Primary" Dense="true">Public</MudRadio>
+                <MudRadio Option="@Visibility.Private" Color="Color.Primary" Dense="true">Private</MudRadio>
+                <MudRadio Option="@Visibility.Hidden" Color="Color.Primary" Dense="true">Hidden</MudRadio>
+            </MudRadioGroup>
+        }
+        <MudButton ButtonType="ButtonType.Submit">Submit</MudButton>
+    </EditForm>
+}
+@if (_inProgress)
+{
+    <MudProgressLinear Indeterminate="true" />
 }
 @if (_imgs is not null)
 {
     @foreach (var img in _imgs)
     {
-        <img src="@img.Url" height="256px" width="256px" />
+        <ImagePreview Image="@img" Width="256" PopUpProvider="@PopUpper" />
     }
 }
-@* https://learn.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-7.0&pivots=server *@
 
 @code {
-    private IEnumerable<ImageId>? _imgs;
-    private bool _isLoading;
-    private int _total;
-    private int Completed
+
+    private UploadHeader _model = new();
+    
+    private IEnumerable<NamedUri>? _imgs;
+    private IReadOnlyList<IBrowserFile>? _files;
+    private bool _inProgress;
+
+    private async Task Submit()
     {
-        get => _completed;
-        set
-        {
-            _completed = value;
-            StateHasChanged();
-        }
+        // TODO validation for formfile count?
+        if (_files is null)
+            return;
+        _imgs = null;
+        _inProgress = true;
+        _imgs = await Client.Upload(_model, _files);
+        _inProgress = false;
+        _model.Items.Clear();
+        _files = null;
     }
 
-    private int _completed;
-
-    private double Progress => (double)Completed / _total;
-    private async Task LoadFiles(InputFileChangeEventArgs e)
+    private void StoreFiles(InputFileChangeEventArgs e)
     {
-        _imgs = null;
-        _isLoading = true;
-        using var content = new MultipartFormDataContent();
-
-        var files = e.GetMultipleFiles(maximumFileCount: 150);
-        foreach (var file in files)
-        {
-            var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 15); // 15 mb
-            var f = new StreamContent(stream);
-            f.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-            content.Add(
-                content: f,
-                name: "\"files\"",
-                fileName: file.Name
-            );
-        }
-
-        _imgs = await Client.Upload(content);
-        _isLoading = false;
+        _files = e.GetMultipleFiles(150);
+        for (int i = 0; i < e.FileCount; ++i)
+            _model.Items.Add(new UploadItemHeader());
     }
 }

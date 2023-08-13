@@ -1,12 +1,19 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
 using System.Text;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Viewer.Server.Controllers;
 using Viewer.Server.Services;
-using Viewer.Server.Models;
 using Viewer.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Viewer.Server.Configuration;
+using Viewer.Server.Services.AuthServices;
+using Viewer.Server.Services.ImageServices;
+using MinioImageClient = Viewer.Server.Services.ImageServices.MinioImageClient;
 
+// TODO make base folders by user/team
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
@@ -14,7 +21,21 @@ var config = builder.Configuration;
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-builder.Services.Configure<JwtOptions>(config.GetSection("JwtSettings"));
+
+// ??
+builder.Services.AddEndpointsApiExplorer();
+
+// MassTransit
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumers(Assembly.GetEntryAssembly());
+    x.UsingInMemory((ctx, cfg) =>
+    {
+        cfg.ConfigureEndpoints(ctx);
+    });
+});
+
+// MinIO
 builder.Services.Configure<MinioOptions>(config.GetSection("Minio"));
 builder.Services.AddTransient<MinioImageClient>();
 builder.Services.AddHostedService<ThumbnailSyncService>();
@@ -63,12 +84,16 @@ builder.Services.AddCors(
         )
 );
 
+// Databases
+builder.Services.AddDbContext<DataContext>(
+    o => o.UseNpgsql(builder.Configuration.GetConnectionString("viewer_users")));
+builder.Services.AddScoped<DataContext>();
+builder.Services.AddScoped<IUserRepository>(sp => sp.GetRequiredService<DataContext>());
+builder.Services.AddScoped<IUploadRepository>(sp => sp.GetRequiredService<DataContext>());
+
+// Misc DI
 builder.Services.AddScoped<Cart>();
-//builder.Services.AddSingleton<IImageService, AppFileImageService>();
-builder.Services.AddSingleton<IImageService, MinioImageService>();
-//builder.Services.AddSingleton<IImageService, ImageServiceStub>();
-builder.Services.AddSingleton<IAuthService, JwtAuthService>();
-builder.Services.AddSingleton<IUserRepository, UserContext>();
+
 
 var app = builder.Build();
 
@@ -84,9 +109,10 @@ else
     app.UseHsts();
 }
 
+// Ensure database creation
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<IUserRepository>() as UserContext;
+    var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     db?.Database.EnsureCreated();
 }
 

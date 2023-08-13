@@ -14,7 +14,7 @@
         @foreach (var item in Cart.Images)
         {
             <div style="margin: 10px;" class="gray-hover" @onclick="@(e => Clicked(e, item))">
-                <MudImage style="width: 100%" Src="@item.Url" Class="rounded-lg"/>
+                <MudImage style="width: 100%" Src="@item.Uri" Class="rounded-lg"/>
             </div>
         }
     }
@@ -32,7 +32,7 @@
         base.OnInitialized();
     }
 
-    private async Task Clicked(MouseEventArgs obj, ImageId img)
+    private async Task Clicked(MouseEventArgs obj, NamedUri img)
     {
         if (obj.CtrlKey)
             Cart.Images.Remove(img);

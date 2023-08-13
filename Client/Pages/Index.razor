@@ -1,7 +1,7 @@
 ﻿@page "/"
 @inject IImageClient ImageClient
 @inject Cart Cart;
-@inject ImagePopUpProvider iis;
+@inject ImagePopUpProvider PopUpper;
 
 <PageTitle>Index</PageTitle>
 
@@ -78,7 +78,7 @@
         /* Gallery view */
         @foreach (var img in _images)
         {
-            <ImagePreview Image="@img" Cart="@Cart" PopUpProvider="@iis" @bind-Width="@Width"/>
+            <ImagePreview Image="@img" Cart="@Cart" PopUpProvider="@PopUpper" @bind-Width="@Width"/>
         }
     }
 </div>
@@ -87,7 +87,7 @@
 @code {
     [CascadingParameter] public Task<AuthenticationState>? AuthState { get; set; }
     
-    private System.Collections.Generic.HashSet<DirectoryTreeItem>? _directories;
+    private HashSet<DirectoryTreeItem>? _directories;
     
     private DirectoryTreeItem? _selectedDirectory;
     
@@ -102,7 +102,7 @@
     } 
     private bool _folderOpen = true;
     
-    private IReadOnlyList<ImageId> _images;
+    private IReadOnlyList<NamedUri>? _images;
     
     [Parameter]
     public int Width { get; set; } = 256;
@@ -122,7 +122,7 @@
     {
         if (_selectedDirectory is null)
         {
-            _images = Array.Empty<ImageId>();
+            _images = Array.Empty<NamedUri>();
             return;
         }
         var req = new GetImagesRequest()

@@ -1,9 +1,10 @@
+using System.Text.Json;
+using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Viewer.Server.Services;
+using Viewer.Server.Services.AuthServices;
+using Viewer.Server.Services.ImageServices;
 using Viewer.Shared;
-using Viewer.Shared.Requests;
-using Viewer.Shared.Services;
 
 namespace Viewer.Server.Controllers;
 
@@ -12,31 +13,57 @@ namespace Viewer.Server.Controllers;
 [Route("api/[controller]")]
 public class ImageAccessController : ControllerBase
 {
+    private const string RootDir = "/";
     private readonly ILogger<ImageAccessController> _logger;
     private readonly IImageService _service;
+    private readonly IClaimsParser _identifier;
 
-    public ImageAccessController(ILogger<ImageAccessController> logger, IImageService service)
+    public ImageAccessController(ILogger<ImageAccessController> logger, IImageService service, IClaimsParser identifier)
     {
         _logger = logger;
         _service = service;
+        _identifier = identifier;
     }
 
+    #region Post
+    
     [HttpPost]
-    public Task<ActionResult<GetImagesResponse>> Post(GetImagesRequest request)
+    public async Task<ActionResult<GetImagesResponse>> Post(GetImagesRequest request)
     {
-        return Get(request);
+        try
+        {
+            var response = await _service.GetImageIds(request).ConfigureAwait(false);
+            return new ActionResult<GetImagesResponse>(response);
+        }
+        catch
+        {
+            return BadRequest();
+        }
     }
     
     [HttpPost("upload")]
-    // TODO make own response with upload success, err, etc
-    public async Task<ActionResult<GetImagesResponse>> PostFiles([FromForm] IEnumerable<IFormFile> files)
+    public async Task<ActionResult<GetImagesResponse>> PostFiles([FromForm] string header, [FromForm] IList<IFormFile> files)
     {
-        return BadRequest();
         try
         {
-            // TODO ImageUpload Stream instead of byte[]
-            var uploads = files.Select(f => new ImageUpload(f.FileName, f.OpenReadStream()));
-            var resp = await _service.Upload(uploads).ConfigureAwait(false);
+            var items = JsonSerializer.Deserialize<UploadHeader>(header, new JsonSerializerOptions() { PropertyNameCaseInsensitive = true});
+            Guard.IsNotNull(items);
+            var user = _identifier.ParseClaims(HttpContext.User);
+            Guard.IsTrue(items.Items.Count == files.Count);
+            var uls = new List<ImageUpload>(files.Count);
+            for (int i = 0; i < items.Items.Count; i++)
+            {
+                var ul = new ImageUpload
+                {
+                    Prefix = items.Prefix,
+                    Name = files[i].FileName,
+                    Image = files[i].OpenReadStream(),
+                    Visibility = items.Items[i].Visibility,
+                    Owner = user
+                };
+                uls.Add(ul);
+            }
+            var resp = await _service.Upload(uls).ConfigureAwait(false);
             var r = new GetImagesResponse(resp);
             return new ActionResult<GetImagesResponse>(r);
         }
@@ -47,13 +74,11 @@ public class ImageAccessController : ControllerBase
     }
 
     [HttpPost("image")]
-    public async Task<ActionResult<ImageId>> Image(GetImageRequest request)
+    public async Task<ActionResult<NamedUri>> Image(GetImageRequest request)
     {
         try
         {
-            return new ActionResult<ImageId>(
-                await _service.GetImage(request).ConfigureAwait(false)
-            );
+            return new ActionResult<NamedUri>(await _service.GetImageId(request).ConfigureAwait(false));
         }
         catch
         {
@@ -62,13 +87,11 @@ public class ImageAccessController : ControllerBase
     }
 
     [HttpPost("dirs")]
-    public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> PostDirectories(
-        [FromBody] string? dir
-    )
+    public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> PostDirectories([FromBody] string? dir)
     {
         try
         {
-            var res = await _service.GetDirectories(dir ?? ROOT_DIR).ConfigureAwait(false);
+            var res = await _service.GetDirectories(dir ?? RootDir).ConfigureAwait(false);
             return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(res);
         }
         catch (Exception ex)
@@ -77,8 +100,18 @@ public class ImageAccessController : ControllerBase
         }
     }
 
-    private const string ROOT_DIR = "/";
+    /*
+    [HttpPost("create")]
+    public async Task<IActionResult> Download(DownloadImagesRequest request)
+    {
+        return CreatedAtAction("CreateArchive", g, null);
+    }
+    */
 
+    #endregion
+
+    #region Get
+    
     [HttpGet("dirs")]
     public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> GetDirectories()
     {
@@ -86,17 +119,13 @@ public class ImageAccessController : ControllerBase
         return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(dirs);
     }
 
-    [HttpGet]
-    public async Task<ActionResult<GetImagesResponse>> Get(GetImagesRequest request) // TODO pass as query string -- param does not work
+    /*
+    [HttpGet("download")]
+    public async Task<FileResult> GetDownload([FromQuery] string resource)
     {
-        try
-        {
-            var response = await _service.GetImages(request).ConfigureAwait(false);
-            return new ActionResult<GetImagesResponse>(response);
-        }
-        catch
-        {
-            return BadRequest();
-        }
+        _service.
     }
+    */
+    
+    #endregion
 }

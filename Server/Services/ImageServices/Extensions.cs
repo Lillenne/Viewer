@@ -1,4 +1,4 @@
-namespace Viewer.Server.Services;
+namespace Viewer.Server.Services.ImageServices;
 
 public static class Extensions
 {
