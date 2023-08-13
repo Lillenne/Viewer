@@ -1,19 +1,18 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Viewer.Shared.Dtos;
+namespace Viewer.Shared.Users;
 
 public class UserRegistration
 {
-    [Required, EmailAddress]
-    public required string Email { get; init; }
+    [Required, EmailAddress] public string Email { get; init; } = string.Empty;
 
-    [Required]
-    public required string Username { get; init; }
+    public string Username { get; init; } = string.Empty;
 
-    [Required, StringLength(100, MinimumLength = 6)]
-    public required string Password { get; init; }
+    [Required, StringLength(100, MinimumLength = 6)] public string Password { get; init; } = string.Empty;
 
-    public string FirstName { get; set; } = string.Empty;
+    [Required] public string FirstName { get; set; } = string.Empty;
 
-    public string LastName { get; set; } = string.Empty;
+    [Required] public string LastName { get; set; } = string.Empty;
+    
+    [Phone] public string? PhoneNumber { get; set; }
 }

@@ -1,6 +1,5 @@
 using Viewer.Shared;
-using Viewer.Shared.Dtos;
-using Viewer.Shared.Requests;
+using Viewer.Shared.Users;
 
 namespace Viewer.Client.ServiceClients;
 

@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Viewer.Server.Services;
+using Viewer.Server.Services.AuthServices;
 using Viewer.Shared;
-using Viewer.Shared.Dtos;
-using Viewer.Shared.Requests;
+using Viewer.Shared.Users;
 
 namespace Viewer.Server.Controllers;
 
@@ -34,7 +33,6 @@ public class AuthController : ControllerBase
     [HttpPost("change-pwd")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
-        return BadRequest("Not taking sign ups yet");
         try
         {
             await _authService.ChangePassword(request).ConfigureAwait(false);
@@ -49,7 +47,6 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(UserRegistration request)
     {
-        return BadRequest("Not taking sign ups yet");
         try
         {
             await _authService.Register(request).ConfigureAwait(false);

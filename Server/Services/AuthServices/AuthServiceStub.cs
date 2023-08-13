@@ -1,14 +1,13 @@
 using Viewer.Shared;
-using Viewer.Shared.Dtos;
-using Viewer.Shared.Requests;
+using Viewer.Shared.Users;
 
-namespace Viewer.Server.Services;
+namespace Viewer.Server.Services.AuthServices;
 
 public class AuthServiceStub : IAuthService
 {
     public Task<AuthToken> Login(UserLogin userLogin)
     {
-        return userLogin?.Username?.Equals("Fail", StringComparison.OrdinalIgnoreCase) ?? true
+        return userLogin?.Email?.Equals("Fail", StringComparison.OrdinalIgnoreCase) ?? true
             ? Task.FromResult(new AuthToken(""))
             : Task.FromResult(new AuthToken("MyToken"));
     }
