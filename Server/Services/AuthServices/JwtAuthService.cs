@@ -59,7 +59,6 @@ public class JwtAuthService : IAuthService
             Email = info.Email,
             PasswordHash = hash,
             PasswordSalt = salt,
-            GroupIds = Array.Empty<UserGroupId>()
         };
         await _repo.AddUser(user);
     }

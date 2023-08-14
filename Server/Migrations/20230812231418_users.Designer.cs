@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Viewer.Server.Services;
@@ -11,9 +12,11 @@ using Viewer.Server.Services;
 namespace Viewer.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class UserContextModelSnapshot : ModelSnapshot
+    [Migration("20230812231418_users")]
+    partial class users
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,30 +25,10 @@ namespace Viewer.Server.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Viewer.Server.Models.Album", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("UserGroupId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserGroupId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Album");
-                });
-
             modelBuilder.Entity("Viewer.Server.Models.GroupMember", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<int>("Role")
@@ -67,25 +50,20 @@ namespace Viewer.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("AlbumId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DirectoryPrefix")
-                        .HasColumnType("text");
-
-                    b.Property<string>("OriginalFileName")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Prefix")
+                        .HasColumnType("text");
+
                     b.Property<int>("Visibility")
                         .HasColumnType("integer");
 
                     b.HasKey("UploadId");
-
-                    b.HasIndex("AlbumId");
 
                     b.HasIndex("OwnerId");
 
@@ -119,9 +97,6 @@ namespace Viewer.Server.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -130,8 +105,6 @@ namespace Viewer.Server.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Users");
                 });
@@ -146,6 +119,20 @@ namespace Viewer.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Policy")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserGroups");
+                });
+
+            modelBuilder.Entity("Viewer.Server.Models.UserGroupId", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
 
@@ -153,41 +140,18 @@ namespace Viewer.Server.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserGroups");
-                });
-
-            modelBuilder.Entity("Viewer.Server.Models.Album", b =>
-                {
-                    b.HasOne("Viewer.Server.Models.UserGroup", null)
-                        .WithMany("Albums")
-                        .HasForeignKey("UserGroupId");
-
-                    b.HasOne("Viewer.Server.Models.User", null)
-                        .WithMany("Albums")
-                        .HasForeignKey("UserId");
+                    b.ToTable("UserGroupId");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.GroupMember", b =>
                 {
-                    b.HasOne("Viewer.Server.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Viewer.Server.Models.UserGroup", null)
                         .WithMany("Members")
                         .HasForeignKey("UserGroupId");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.Upload", b =>
                 {
-                    b.HasOne("Viewer.Server.Models.Album", null)
-                        .WithMany("Uploads")
-                        .HasForeignKey("AlbumId");
-
                     b.HasOne("Viewer.Server.Models.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
@@ -197,38 +161,20 @@ namespace Viewer.Server.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Viewer.Server.Models.User", b =>
+            modelBuilder.Entity("Viewer.Server.Models.UserGroupId", b =>
                 {
                     b.HasOne("Viewer.Server.Models.User", null)
-                        .WithMany("Friends")
+                        .WithMany("GroupIds")
                         .HasForeignKey("UserId");
-                });
-
-            modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>
-                {
-                    b.HasOne("Viewer.Server.Models.User", null)
-                        .WithMany("Groups")
-                        .HasForeignKey("UserId");
-                });
-
-            modelBuilder.Entity("Viewer.Server.Models.Album", b =>
-                {
-                    b.Navigation("Uploads");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.User", b =>
                 {
-                    b.Navigation("Albums");
-
-                    b.Navigation("Friends");
-
-                    b.Navigation("Groups");
+                    b.Navigation("GroupIds");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>
                 {
-                    b.Navigation("Albums");
-
                     b.Navigation("Members");
                 });
 #pragma warning restore 612, 618

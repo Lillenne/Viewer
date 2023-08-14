@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Viewer.Server.Services;
@@ -11,9 +12,11 @@ using Viewer.Server.Services;
 namespace Viewer.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class UserContextModelSnapshot : ModelSnapshot
+    [Migration("20230813211249_albums")]
+    partial class albums
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -119,9 +122,6 @@ namespace Viewer.Server.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -130,8 +130,6 @@ namespace Viewer.Server.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Users");
                 });
@@ -197,13 +195,6 @@ namespace Viewer.Server.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Viewer.Server.Models.User", b =>
-                {
-                    b.HasOne("Viewer.Server.Models.User", null)
-                        .WithMany("Friends")
-                        .HasForeignKey("UserId");
-                });
-
             modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>
                 {
                     b.HasOne("Viewer.Server.Models.User", null)
@@ -219,8 +210,6 @@ namespace Viewer.Server.Migrations
             modelBuilder.Entity("Viewer.Server.Models.User", b =>
                 {
                     b.Navigation("Albums");
-
-                    b.Navigation("Friends");
 
                     b.Navigation("Groups");
                 });

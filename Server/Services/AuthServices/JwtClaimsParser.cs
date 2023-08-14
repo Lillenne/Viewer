@@ -29,10 +29,12 @@ public class JwtClaimsParser : IClaimsParser
         {
             Id = Guid.Parse(userId),
             UserName = userName,
-            Email = principal.FindFirstValue(ClaimTypes.Email) ?? throw new ArgumentException("User email not registered"),
+            Email = principal.FindFirstValue(ClaimTypes.Email) ??
+                    throw new ArgumentException("User email not registered"),
             FirstName = principal.FindFirstValue(ClaimTypes.GivenName),
             LastName = principal.FindFirstValue(ClaimTypes.Surname),
             //PhoneNumber = principal.FindFirstValue(JwtRegisteredClaimNames.),
+            // TODO friend / group ids
         };
     }
 

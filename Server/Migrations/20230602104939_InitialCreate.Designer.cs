@@ -11,7 +11,7 @@ using Viewer.Server.Services;
 
 namespace Viewer.Server.Migrations
 {
-    [DbContext(typeof(UserContext))]
+    [DbContext(typeof(DataContext))]
     [Migration("20230602104939_InitialCreate")]
     partial class InitialCreate
     {

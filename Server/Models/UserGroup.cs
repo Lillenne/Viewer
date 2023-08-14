@@ -1,28 +1,55 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Viewer.Shared.Users;
 
 namespace Viewer.Server.Models;
 
 public class UserGroup
 {
-    public required Guid Id { get; init; }
+    /// <summary>
+    /// The group's unique ID
+    /// </summary>
+    [Key] public required Guid Id { get; init; }
+    
+    /// <summary>
+    /// The group's name
+    /// </summary>
     public required string Name { get; init; }
-    public required Visibility Policy { get; init; }
-    public required IList<GroupMember> Members { get; init; } = new List<GroupMember>();
+    
+    /// <summary>
+    /// All members of the group and their roles
+    /// </summary>
+    public required ICollection<GroupMember> Members { get; init; } = new List<GroupMember>();
 
+    /// <summary>
+    /// All albums available to the group
+    /// </summary>
+    public required ICollection<Album> Albums { get; init; } = new List<Album>();
     public static implicit operator UserGroupDto(UserGroup group)
     {
         return new UserGroupDto
         {
             Id = group.Id,
             Name = group.Name,
-            Policy = group.Policy,
         };
     }
 }
 
 public record GroupMember
 {
-    public required Guid Id { get; init; }
+    /// <summary>
+    /// The member's user ID
+    /// </summary>
+    [Key] [ForeignKey(nameof(User))] public required Guid Id { get; init; }
+    
+    /// <summary>
+    /// The member
+    /// </summary>
+    public required User? User { get; init; }
+    
+    /// <summary>
+    /// The member's role in the group
+    /// </summary>
     public GroupRole Role { get; set; } = GroupRole.Member;
 }
 
