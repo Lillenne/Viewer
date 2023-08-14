@@ -23,13 +23,10 @@ public class GetImagesResponse
 
 public class GetImagesRequest
 {
+    public required Guid SourceId { get; init; }
     public string? Directory { get; init; }
-    public string? SearchPattern { get; init; }
-    public bool Recursive { get; init; }
+    //public string? SearchPattern { get; init; }
     public int Width { get; init; }
-    public int Height { get; init; }
-    public int StartIndex { get; init; } = 0;
-    public int TakeNumber { get; init; } = -1;
 }
 
 public class GetImageRequest

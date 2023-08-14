@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,7 +14,8 @@ using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.ImageServices;
 using MinioImageClient = Viewer.Server.Services.ImageServices.MinioImageClient;
 
-// TODO make base folders by user/team
+[assembly:InternalsVisibleTo("Viewer.Tests")]
+
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
@@ -36,9 +38,11 @@ builder.Services.AddMassTransit(x =>
 });
 
 // MinIO
-builder.Services.Configure<MinioOptions>(config.GetSection("Minio"));
+//builder.Services.Configure<MinioOptions>(config.GetSection("Minio"));
+builder.Services.AddOptions<MinioOptions>()
+    .Bind(builder.Configuration.GetSection("Minio"))
+    .ValidateDataAnnotations();
 builder.Services.AddTransient<MinioImageClient>();
-builder.Services.AddHostedService<ThumbnailSyncService>();
 builder.Services.AddScoped<IImageService, MinioImageService>();
 
 // Jwt

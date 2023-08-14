@@ -3,7 +3,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudContainer Style="max-height: 95vh; max-width: 95wh">
+        <MudContainer Style="max-height: 95vh; max-width: 95vw">
             @if (Source == null)
             {
                 <MudText Typo="Typo.h6" Color="Color.Error">An error occurred. Please try again later.</MudText>
@@ -24,7 +24,7 @@
 @code {
     [CascadingParameter] MudDialogInstance? MudDialogInstance { get; set; }
     [Parameter] public NamedUri? Source { get; set; }
-    private string AddOrRemoveMessage => Source is null ? "Image not found!" : (Cart.ContainsSimilar(Source.Name) ? "Remove from cart" : "Add to cart");
+    private string AddOrRemoveMessage => Source is null ? "Image not found!" : (Cart.ContainsItem(Source.Id) ? "Remove from cart" : "Add to cart");
 
     protected override void OnParametersSet()
     {

@@ -86,28 +86,6 @@ public class ImageAccessController : ControllerBase
         }
     }
 
-    [HttpPost("dirs")]
-    public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> PostDirectories([FromBody] string? dir)
-    {
-        try
-        {
-            var res = await _service.GetDirectories(dir ?? RootDir).ConfigureAwait(false);
-            return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(res);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest();
-        }
-    }
-
-    /*
-    [HttpPost("create")]
-    public async Task<IActionResult> Download(DownloadImagesRequest request)
-    {
-        return CreatedAtAction("CreateArchive", g, null);
-    }
-    */
-
     #endregion
 
     #region Get
@@ -115,17 +93,10 @@ public class ImageAccessController : ControllerBase
     [HttpGet("dirs")]
     public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> GetDirectories()
     {
-        var dirs = await _service.GetDirectories(string.Empty).ConfigureAwait(false);
+        var user = _identifier.ParseClaims(HttpContext.User);
+        var dirs = await _service.GetDirectories(user).ConfigureAwait(false);
         return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(dirs);
     }
 
-    /*
-    [HttpGet("download")]
-    public async Task<FileResult> GetDownload([FromQuery] string resource)
-    {
-        _service.
-    }
-    */
-    
     #endregion
 }

@@ -7,9 +7,7 @@ public class MinioOptions
     public string SecretKey { get; set; }
     public string Endpoint { get; set; }
     public int Port { get; set; }
-    public string ImageBucket { get; set; }
-    public string ThumbnailBucket { get; set; }
-    public string ArchiveBucket { get; set; }
+    public string Bucket { get; set; }
     public int[] ThumbnailWidths { get; set; }
     public bool UseHttps { get; set;}
     public int DefaultLinkExpiryTimeSeconds { get; set; } = 60 * 60 * 24;

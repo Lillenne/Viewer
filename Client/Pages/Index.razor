@@ -114,11 +114,12 @@
     {
         Cart.Images.CollectionChanged += (_, _) => StateHasChanged();
         _directories = (await ImageClient.GetDirectories()).ToHashSet();
+        DirectoryTreeItem.RestoreDoublyLinks(_directories);
         _selectedDirectory = _directories?.FirstOrDefault();
         await OnChangeDir();
     }
     
-    private async Task OnChangeDir() 
+    private async Task OnChangeDir()
     {
         if (_selectedDirectory is null)
         {
@@ -127,7 +128,8 @@
         }
         var req = new GetImagesRequest()
         {
-            Directory = _selectedDirectory?.DirectoryName,
+            SourceId = _selectedDirectory.Root().Source!.Value,
+            Directory = _selectedDirectory.IsRoot() ? null : _selectedDirectory.KeyFromRoot(),
             Width = Width,
         };
         _images = await ImageClient.GetImages(req);

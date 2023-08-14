@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.AspNetCore.Http;
 using Viewer.Shared.Users;
 
 namespace Viewer.Shared;

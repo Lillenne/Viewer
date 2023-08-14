@@ -13,9 +13,9 @@ public class ImageClient : IImageClient
         _client = client.CreateClient("api");
     }
 
-    public async Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(string? dir)
+    public async Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories()
     {
-        var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Dirs, dir);
+        var response = await _client.GetAsync(ApiRoutes.ImageAccess.Dirs);
         return !response.IsSuccessStatusCode
             ? Array.Empty<DirectoryTreeItem>()
             : await response.Content.ReadFromJsonAsync<IReadOnlyList<DirectoryTreeItem>>()
