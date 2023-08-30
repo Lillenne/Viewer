@@ -6,12 +6,10 @@ namespace Viewer.Server.Services.AuthServices;
 
 public class JwtClaimsParser : IClaimsParser
 {
-    private readonly IUserRepository _userRepository;
     private readonly ILogger<JwtClaimsParser> _logger;
 
-    public JwtClaimsParser(IUserRepository userRepository, ILogger<JwtClaimsParser> logger)
+    public JwtClaimsParser(ILogger<JwtClaimsParser> logger)
     {
-        _userRepository = userRepository;
         _logger = logger;
     }
     
@@ -33,7 +31,7 @@ public class JwtClaimsParser : IClaimsParser
                     throw new ArgumentException("User email not registered"),
             FirstName = principal.FindFirstValue(ClaimTypes.GivenName),
             LastName = principal.FindFirstValue(ClaimTypes.Surname),
-            //PhoneNumber = principal.FindFirstValue(JwtRegisteredClaimNames.),
+            PhoneNumber = principal.FindFirstValue(ClaimTypes.MobilePhone),
             // TODO friend / group ids
         };
     }

@@ -1,0 +1,86 @@
+@page "/friends"
+@inject UserClient UserClient
+@using Viewer.Shared.Users
+@using System.Collections.ObjectModel
+<MudText Typo="Typo.h6">Friend management</MudText>
+<MudButton></MudButton>
+@if (_friends is null)
+{
+    <MudText>Getting friend data, hold tight...</MudText>
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText>My friends</MudText>
+    @foreach (var friend in _friends)
+    {
+        <MudCard>
+            <MudCardContent>
+                <MudText>@friend.Name</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                @* TODO link to their pictures *@
+                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Unfriend(friend))">Unfriend</MudButton>
+            </MudCardActions>
+        </MudCard>
+    }
+}
+
+<MudButton Variant="Variant.Filled" OnClick="ToggleFindingNewFriends">Find new friends</MudButton>
+
+@if (_findingNewFriends)
+{
+    @if (_suggested is null)
+    {
+        <MudText>Unexpected error, please try again later</MudText>
+    }
+    else
+    {
+        @foreach (var suggestion in _suggested)
+        {
+            <MudCard>
+                <MudCardContent>
+                    <MudText>@suggestion.Name</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => AddFriend(suggestion))">Add friend</MudButton>
+                </MudCardActions>
+            </MudCard>
+        }
+    }
+}
+
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var friends = await UserClient.GetFriendData();
+        _friends = new ObservableCollection<Identity>(friends.Friends);
+    }
+
+    private ObservableCollection<Identity>? _friends;
+    private bool _findingNewFriends;
+    private ObservableCollection<Identity>? _suggested;
+
+    private async Task Unfriend(Identity id)
+    {
+        await UserClient.Unfriend(id.Id);
+        _friends!.Remove(id);
+    }
+
+    private async Task ToggleFindingNewFriends()
+    {
+        _findingNewFriends = !_findingNewFriends;
+        if (!_findingNewFriends)
+            return;
+        var sug = await UserClient.SuggestFriends(10);
+        _suggested = new ObservableCollection<Identity>(sug.Friends);
+    }
+
+    private async Task AddFriend(Identity suggestionId)
+    {
+        await UserClient.AddFriend(suggestionId.Id);
+        _friends ??= new ObservableCollection<Identity>();
+        _friends.Add(suggestionId);
+    }
+}

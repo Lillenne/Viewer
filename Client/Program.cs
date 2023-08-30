@@ -15,20 +15,15 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services
     .AddHttpClient("api", c => c.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler<AuthHandler>();
-;
 builder.Services.AddMudServices();
 builder.Services.AddScoped<Cart>();
 builder.Services.AddScoped<ImagePopUpProvider>();
 builder.Services.AddScoped<IAuthClient, AuthClient>();
 builder.Services.AddScoped<AuthHandler>();
-builder.Services.AddScoped<AuthenticationStateProvider>(
-    sp => (AuthClient)sp.GetRequiredService<IAuthClient>()
-);
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => (AuthClient)sp.GetRequiredService<IAuthClient>());
 builder.Services.AddScoped<IImageClient, ImageClient>();
-builder.Services.AddBlazoredLocalStorageAsSingleton(o =>
-{
-    o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-});
+builder.Services.AddScoped<UserClient>();
+builder.Services.AddBlazoredLocalStorageAsSingleton(o => o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
 builder.Services.AddAuthorizationCore();
 
 await builder.Build().RunAsync();

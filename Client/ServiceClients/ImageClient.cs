@@ -71,9 +71,8 @@ public class ImageClient : IImageClient
         var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Download, request);
         if (response.IsSuccessStatusCode)
         {
-            
-        }
+            // TODO notify user. Popup maybe?
             return; 
-        // TODO notify user. Popup maybe?
+        }
     }
 }

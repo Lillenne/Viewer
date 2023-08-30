@@ -14,6 +14,12 @@ namespace Viewer.Server.Services
         {
         }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseLazyLoadingProxies();
+            base.OnConfiguring(optionsBuilder);
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             /*
@@ -39,6 +45,12 @@ namespace Viewer.Server.Services
         public Task<User> GetUser(string email)
         {
             return Users.SingleAsync(u => u.Email.Equals(email));
+        }
+
+        public Task UpdateUser(User user)
+        {
+            Users.Update(user);
+            return SaveChangesAsync();
         }
 
         public Task<User> GetUserByUsername(string username)

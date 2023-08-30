@@ -10,8 +10,10 @@ using Viewer.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server.Configuration;
+using Viewer.Server.Models;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.ImageServices;
+using Viewer.Server.Services.UserServices;
 using MinioImageClient = Viewer.Server.Services.ImageServices.MinioImageClient;
 
 [assembly:InternalsVisibleTo("Viewer.Tests")]
@@ -97,6 +99,7 @@ builder.Services.AddScoped<IUploadRepository>(sp => sp.GetRequiredService<DataCo
 
 // Misc DI
 builder.Services.AddScoped<Cart>();
+builder.Services.AddTransient<IFriendSuggestor, FirstInDbSuggestor>();
 
 
 var app = builder.Build();
@@ -116,8 +119,14 @@ else
 // Ensure database creation
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+    using var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     db?.Database.EnsureCreated();
+    /*
+    var notme = db.Users.First(u => !u.UserName.Equals("lillenne"));
+    var me = db.Users.Include(u => u.Albums).First(u => u.UserName.Equals("lillenne"));
+    me.Friends.Add(notme);
+    db.UpdateUser(me);
+*/
 }
 
 app.UseHttpsRedirection();

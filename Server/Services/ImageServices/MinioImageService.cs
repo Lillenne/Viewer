@@ -85,9 +85,9 @@ public class MinioImageService : IImageService
     */
 
 
-    public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(UserDto user)
+    public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(IEnumerable<Identity> sources)
     {
-        return _minio.GetDirectories(user.ViewableIdentities());
+        return _minio.GetDirectories(sources);
     }
 
     public async Task<NamedUri> Upload(ImageUpload image)

@@ -17,7 +17,10 @@ namespace Viewer.Server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.5")
+                .HasAnnotation("ProductVersion", "7.0.10")
+                .HasAnnotation("Proxies:ChangeTracking", false)
+                .HasAnnotation("Proxies:CheckEquality", false)
+                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -25,8 +28,11 @@ namespace Viewer.Server.Migrations
             modelBuilder.Entity("Viewer.Server.Models.Album", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("UserGroupId")
                         .HasColumnType("uuid");
@@ -64,7 +70,6 @@ namespace Viewer.Server.Migrations
             modelBuilder.Entity("Viewer.Server.Models.Upload", b =>
                 {
                     b.Property<Guid>("UploadId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("AlbumId")
@@ -95,7 +100,6 @@ namespace Viewer.Server.Migrations
             modelBuilder.Entity("Viewer.Server.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Email")
@@ -139,7 +143,6 @@ namespace Viewer.Server.Migrations
             modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Name")

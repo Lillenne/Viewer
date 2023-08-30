@@ -59,6 +59,7 @@ public class JwtAuthService : IAuthService
             Email = info.Email,
             PasswordHash = hash,
             PasswordSalt = salt,
+            Id = Guid.NewGuid(),
         };
         await _repo.AddUser(user);
     }

@@ -9,7 +9,8 @@ public class UserGroup
     /// <summary>
     /// The group's unique ID
     /// </summary>
-    [Key] public required Guid Id { get; init; }
+    [Key,DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public required Guid Id { get; init; }
     
     /// <summary>
     /// The group's name
@@ -19,12 +20,12 @@ public class UserGroup
     /// <summary>
     /// All members of the group and their roles
     /// </summary>
-    public required ICollection<GroupMember> Members { get; init; } = new List<GroupMember>();
+    public virtual required ICollection<GroupMember> Members { get; init; } = new List<GroupMember>();
 
     /// <summary>
     /// All albums available to the group
     /// </summary>
-    public required ICollection<Album> Albums { get; init; } = new List<Album>();
+    public virtual required ICollection<Album> Albums { get; init; } = new List<Album>();
     public static implicit operator UserGroupDto(UserGroup group)
     {
         return new UserGroupDto
@@ -40,12 +41,13 @@ public record GroupMember
     /// <summary>
     /// The member's user ID
     /// </summary>
-    [Key] [ForeignKey(nameof(User))] public required Guid Id { get; init; }
+    [Key, ForeignKey(nameof(User)), DatabaseGenerated(DatabaseGeneratedOption.None)] 
+    public required Guid Id { get; init; }
     
     /// <summary>
     /// The member
     /// </summary>
-    public required User? User { get; init; }
+    public virtual User? User { get; init; }
     
     /// <summary>
     /// The member's role in the group

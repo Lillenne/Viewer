@@ -25,7 +25,6 @@ public class GetImagesRequest
 {
     public required Guid SourceId { get; init; }
     public string? Directory { get; init; }
-    //public string? SearchPattern { get; init; }
     public int Width { get; init; }
 }
 

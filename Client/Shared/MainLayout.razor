@@ -26,6 +26,9 @@
         <MudIconButton Icon="@Icons.Material.Filled.UploadFile"
                        Color="Color.Inherit"
                        @onclick="@ToUpload"/>
+        <MudIconButton Icon="@Icons.Material.Filled.Face"
+                       Color="Color.Inherit"
+                       @onclick="@ToFriends"/>
         <MudSpacer/>
         <MudText Typo="Typo.h6">Family photos</MudText>
         <MudSpacer/>
@@ -58,6 +61,7 @@
     private void ToLogin() => Nav.NavigateTo(Routes.Login);
     private void ToRegistration() => Nav.NavigateTo(Routes.Register);
     private void ToUpload() => Nav.NavigateTo(Routes.Upload);
+    private void ToFriends() => Nav.NavigateTo(Routes.Friends);
     
     private async Task? Download(Cart arg)
     {

@@ -9,7 +9,8 @@ public class Upload
     /// <summary>
     /// The ID for this upload
     /// </summary>
-    [Key] public required Guid UploadId { get; init; }
+    [Key,DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public required Guid UploadId { get; init; }
     
     /// <summary>
     /// The ID of the owner of the image
@@ -19,7 +20,7 @@ public class Upload
     /// <summary>
     /// The owner of the image
     /// </summary>
-    public User? Owner { get; set; }
+    public virtual User? Owner { get; set; }
     
     /// <summary>
     /// The original upload file name
