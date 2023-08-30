@@ -10,7 +10,6 @@ using Viewer.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server.Configuration;
-using Viewer.Server.Models;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.ImageServices;
 using Viewer.Server.Services.UserServices;
@@ -40,7 +39,6 @@ builder.Services.AddMassTransit(x =>
 });
 
 // MinIO
-//builder.Services.Configure<MinioOptions>(config.GetSection("Minio"));
 builder.Services.AddOptions<MinioOptions>()
     .Bind(builder.Configuration.GetSection("Minio"))
     .ValidateDataAnnotations();
@@ -78,6 +76,7 @@ builder.Services
 
 builder.Services.AddAuthorization(o =>
 {
+    o.AddPolicy("upload-privilege", policy => policy.RequireAuthenticatedUser().RequireRole("upload"));
     o.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme).RequireAuthenticatedUser().Build();
 });
 
@@ -120,13 +119,7 @@ else
 using (var scope = app.Services.CreateScope())
 {
     using var db = scope.ServiceProvider.GetRequiredService<DataContext>();
-    db?.Database.EnsureCreated();
-    /*
-    var notme = db.Users.First(u => !u.UserName.Equals("lillenne"));
-    var me = db.Users.Include(u => u.Albums).First(u => u.UserName.Equals("lillenne"));
-    me.Friends.Add(notme);
-    db.UpdateUser(me);
-*/
+    db.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();

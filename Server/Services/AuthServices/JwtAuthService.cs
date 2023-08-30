@@ -89,6 +89,14 @@ public class JwtAuthService : IAuthService
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.AuthTime, time.ToShortTimeString()),
         };
+        if (user.Roles is not null)
+        {
+            foreach (var role in user.Roles.Select(r => r.Role?.RoleName))
+            {
+                if (role is not null)
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+        }
         if (user.FirstName is not null)
             claims.Add(new(JwtRegisteredClaimNames.GivenName, user.FirstName));
         if (user.LastName is not null)

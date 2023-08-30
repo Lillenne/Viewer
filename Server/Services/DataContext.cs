@@ -9,6 +9,7 @@ namespace Viewer.Server.Services
         public DbSet<User> Users => Set<User>();
         public DbSet<UserGroup> UserGroups => Set<UserGroup>();
         public DbSet<Upload> Uploads => Set<Upload>();
+        public DbSet<Role> Role => Set<Role>();
 
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {

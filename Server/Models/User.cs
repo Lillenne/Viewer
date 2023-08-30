@@ -15,19 +15,8 @@ public record User
     public required string Email { get; init; }
     public required byte[] PasswordHash { get; set; }
     public required byte[] PasswordSalt { get; set; }
-    public virtual ICollection<UserGroup> Groups { get; set; }
-    public virtual ICollection<Album> Albums { get; set; }
-    public virtual ICollection<User> Friends { get; set; }
-
-    public static implicit operator UserDto(User user) => new UserDto
-    {
-        Id = user.Id,
-        UserName = user.UserName,
-        FirstName = user.FirstName,
-        LastName = user.LastName,
-        Email = user.Email,
-        PhoneNumber = user.PhoneNumber,
-        GroupIds = user.Groups is not null ? user.Groups.GroupIdentities().ToList() : new List<Identity>(),
-        FriendIds = user.Friends is not null ? user.Friends.Select(u => new Identity(u.Id, u.UserName)).ToList() : new List<Identity>()
-    };
+    public virtual ICollection<UserGroup>? Groups { get; set; }
+    public virtual ICollection<Album>? Albums { get; set; }
+    public virtual ICollection<User>? Friends { get; set; }
+    public virtual ICollection<RoleMember>? Roles { get; set; }
 }

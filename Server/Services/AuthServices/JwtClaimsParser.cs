@@ -23,6 +23,7 @@ public class JwtClaimsParser : IClaimsParser
             throw e;
         }
         var userName = principal.FindFirstValue(JwtRegisteredClaimNames.Name);
+        var roles = principal.FindAll(ClaimTypes.Role);
         return new UserDto
         {
             Id = Guid.Parse(userId),
@@ -32,6 +33,7 @@ public class JwtClaimsParser : IClaimsParser
             FirstName = principal.FindFirstValue(ClaimTypes.GivenName),
             LastName = principal.FindFirstValue(ClaimTypes.Surname),
             PhoneNumber = principal.FindFirstValue(ClaimTypes.MobilePhone),
+            Roles = roles.Select(c => c.Value).ToList()
             // TODO friend / group ids
         };
     }

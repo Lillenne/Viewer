@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
+using System.Security.Claims;
 
 namespace Viewer.Shared.Users;
 
@@ -13,6 +14,7 @@ public class UserDto
     public string? PhoneNumber { get; init; }
     public IList<Identity> GroupIds { get; init; } = new List<Identity>();
     public IList<Identity> FriendIds { get; init; } = new List<Identity>();
+    public IList<string> Roles { get; init; } = new List<string>();
 }
 
 [DataContract, Serializable]

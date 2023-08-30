@@ -67,6 +67,42 @@ namespace Viewer.Server.Migrations
                     b.ToTable("GroupMember");
                 });
 
+            modelBuilder.Entity("Viewer.Server.Models.Role", b =>
+                {
+                    b.Property<Guid>("RoleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("RoleId");
+
+                    b.ToTable("Role");
+                });
+
+            modelBuilder.Entity("Viewer.Server.Models.RoleMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RoleMember");
+                });
+
             modelBuilder.Entity("Viewer.Server.Models.Upload", b =>
                 {
                     b.Property<Guid>("UploadId")
@@ -185,6 +221,25 @@ namespace Viewer.Server.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Viewer.Server.Models.RoleMember", b =>
+                {
+                    b.HasOne("Viewer.Server.Models.Role", "Role")
+                        .WithMany("RoleMembers")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Viewer.Server.Models.User", "User")
+                        .WithMany("Roles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Viewer.Server.Models.Upload", b =>
                 {
                     b.HasOne("Viewer.Server.Models.Album", null)
@@ -219,6 +274,11 @@ namespace Viewer.Server.Migrations
                     b.Navigation("Uploads");
                 });
 
+            modelBuilder.Entity("Viewer.Server.Models.Role", b =>
+                {
+                    b.Navigation("RoleMembers");
+                });
+
             modelBuilder.Entity("Viewer.Server.Models.User", b =>
                 {
                     b.Navigation("Albums");
@@ -226,6 +286,8 @@ namespace Viewer.Server.Migrations
                     b.Navigation("Friends");
 
                     b.Navigation("Groups");
+
+                    b.Navigation("Roles");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>

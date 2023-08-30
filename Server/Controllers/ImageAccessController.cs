@@ -49,7 +49,7 @@ public class ImageAccessController : ControllerBase
     }
     
     [HttpPost("upload")]
-    // TODO [Authorize(Policy = "uploader")]
+    [Authorize(Policy = "upload-privilege")]
     public async Task<ActionResult<GetImagesResponse>> PostFiles([FromForm] string header, [FromForm] IList<IFormFile> files)
     {
         _logger.LogInformation("Received {FilesCount} file upload from {FindFirst}", files.Count, 
