@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server.Configuration;
 using Viewer.Server.Services.AuthServices;
+using Viewer.Server.Services.Email;
 using Viewer.Server.Services.ImageServices;
 using Viewer.Server.Services.UserServices;
 using MinioImageClient = Viewer.Server.Services.ImageServices.MinioImageClient;
@@ -99,6 +100,12 @@ builder.Services.AddScoped<IUploadRepository>(sp => sp.GetRequiredService<DataCo
 // Misc DI
 builder.Services.AddScoped<Cart>();
 builder.Services.AddTransient<IFriendSuggestor, FirstInDbSuggestor>();
+
+// Email
+builder.Services.AddTransient<EmailClient>();
+builder.Services.AddOptions<EmailOptions>()
+    .Bind(builder.Configuration.GetSection("Email"))
+    .ValidateDataAnnotations();
 
 
 var app = builder.Build();

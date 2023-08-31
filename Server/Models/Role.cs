@@ -5,7 +5,8 @@ namespace Viewer.Server.Models;
 
 public class RoleMember
 {
-    public Guid Id { get; set; }
+    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public Guid Id { get; init; }
     [ForeignKey(nameof(UserId))]
     public required Guid UserId { get; init; }
     public virtual User? User { get; set; }

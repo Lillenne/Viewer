@@ -1,5 +1,7 @@
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Viewer.Server.Events;
 using Viewer.Server.Services;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.UserServices;
@@ -46,15 +48,16 @@ public class RelationsController : ControllerBase
     }
 
     [HttpPost("addfriend")]
-    public async Task AddFriend([FromBody] Guid id)
+    public async Task AddFriend([FromBody] Guid id, [FromServices] IBus bus)
     {
         var userDto = _identifier.ParseClaims(HttpContext.User);
-        _logger.LogInformation("Adding friend {Id} to {UserDtoId}", id, userDto.Id);
-        var usr = await _users.GetUser(userDto.Id).ConfigureAwait(false);
-        var friends = usr.Friends;
-        var friend = await _users.GetUser(id).ConfigureAwait(false);
-        friends.Add(friend);
-        await _users.UpdateUser(usr);
+        _logger.LogInformation("Receive add friend request {Id} to {UserDtoId}", id, userDto.Id);
+        await bus.Publish(new FriendRequestEvent
+        {
+            RequesterId = userDto.Id,
+            FriendId = id
+        }).ConfigureAwait(false);
+        _logger.LogInformation("Published add friend event {Id} to {UserDtoId}", id, userDto.Id);
     }
     
     [HttpPost("unfriend")]
@@ -64,10 +67,29 @@ public class RelationsController : ControllerBase
         _logger.LogInformation("removing friend {Id} to {UserDtoId}", id, userDto.Id);
         var usr = await _users.GetUser(userDto.Id).ConfigureAwait(false);
         var friends = usr.Friends;
-        var friend = friends.FirstOrDefault(f => f.Id == id);
+        var friend = friends!.FirstOrDefault(f => f.Id == id);
         if (friend is null)
             throw new InvalidOperationException("Users are not friends");
-        usr.Friends.Remove(friend);
+        usr.Friends!.Remove(friend);
         await _users.UpdateUser(usr);
+    }
+
+    [HttpGet("confirm-friend")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ConfirmFriend([FromQuery] Guid requester, [FromQuery] Guid friend, [FromServices] IPublishEndpoint publishEndpoint)
+    {
+        if (requester == friend || requester == Guid.Empty || friend == Guid.Empty)
+        {
+            _logger.LogWarning("Received bad friend confirmation request from requester {Requester} to friend {Friend}", requester, friend);
+            return BadRequest();
+        }
+            
+        _logger.LogInformation("Received friend confirmation request from requester {Requester} to friend {Friend}", requester, friend);
+        await publishEndpoint.Publish(new FriendRequestConfirmedEvent
+        {
+            RequesterId = requester,
+            FriendId = friend
+        }).ConfigureAwait(false);
+        return Ok();
     }
 }
