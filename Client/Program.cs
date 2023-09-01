@@ -3,6 +3,7 @@ using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.FeatureManagement;
 using Viewer.Client;
 using MudBlazor.Services;
 using Viewer.Client.ServiceClients;
@@ -15,6 +16,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services
     .AddHttpClient("api", c => c.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler<AuthHandler>();
+builder.Services.AddFeatureManagement(builder.Configuration.GetSection("FeatureManagement"));
 builder.Services.AddMudServices();
 builder.Services.AddScoped<Cart>();
 builder.Services.AddScoped<ImagePopUpProvider>();

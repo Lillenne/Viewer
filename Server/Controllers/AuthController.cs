@@ -16,6 +16,14 @@ public class AuthController : ControllerBase
 
     private readonly IAuthService _authService;
 
+    [HttpGet("whoami")]
+    public async Task<ActionResult<UserDto?>> WhoAmI()
+    {
+        var me =  await _authService.WhoAmI(HttpContext.User);
+        return me;
+    }
+    
+    
     [HttpPost("login")]
     public async Task<ActionResult<AuthToken?>> Login(UserLogin request)
     {

@@ -1,14 +1,15 @@
 ﻿@page "/"
 @inject IImageClient ImageClient
-@inject Cart Cart;
-@inject ImagePopUpProvider PopUpper;
+@inject Cart Cart
+@inject ImagePopUpProvider PopUpper
+@inject IAuthClient Who
 
 <PageTitle>Index</PageTitle>
 
 <AuthorizeView>
     @* Greeting *@
     <Authorized>
-        <MudText Typo="Typo.h6" Class="m-4" Style="font-size: 2.5rem" Color="Color.Default">Hello, @GetName().Result</MudText>
+        <MudText Typo="Typo.h6" Class="m-4" Style="font-size: 2.5rem" Color="Color.Default">@AuthorizedGreeting</MudText>
     </Authorized>
     @* Notify to login *@
     <NotAuthorized>
@@ -103,7 +104,9 @@
     private bool _folderOpen = true;
     
     private IReadOnlyList<NamedUri>? _images;
-    
+    private string? _name;
+    private string AuthorizedGreeting => _name is not null ? $"Hello, {_name}!" : "Welcome back!";
+
     [Parameter]
     public int Width { get; set; } = 256;
 
@@ -112,6 +115,8 @@
     
     protected override async Task OnInitializedAsync()
     {
+        var me = await Who.WhoAmI();
+        _name = me?.FirstName ?? me?.UserName;
         Cart.Images.CollectionChanged += (_, _) => StateHasChanged();
         _directories = (await ImageClient.GetDirectories()).ToHashSet();
         DirectoryTreeItem.RestoreDoublyLinks(_directories);
@@ -135,9 +140,5 @@
         _images = await ImageClient.GetImages(req);
     } 
     
-    private async Task<string?> GetName() => AuthState is null ? null
-        : (await AuthState).User.Claims
-            .FirstOrDefault(n => n.Type.Equals("name", StringComparison.InvariantCultureIgnoreCase))?.Value;
-
     private static bool ItemHasChildren(DirectoryTreeItem item) => item.Subdirectories.Count > 0;
 }

@@ -12,8 +12,6 @@ public class UserDto
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
     public string? PhoneNumber { get; init; }
-    public IList<Identity> GroupIds { get; init; } = new List<Identity>();
-    public IList<Identity> FriendIds { get; init; } = new List<Identity>();
     public IList<string> Roles { get; init; } = new List<string>();
 }
 

@@ -1,42 +1,55 @@
 ﻿@page "/upload"
 @using Viewer.Shared.Users
+@using System.Security.Claims
 @inject IImageClient Client
 @inject ImagePopUpProvider PopUpper
+@inject IFeatureManager FeatureManager
+@inject IAuthClient AuthClient
 
 <MudText Typo="Typo.h6">Upload!</MudText>
-<MudText>Select files to upload:</MudText>
-<InputFile OnChange="@StoreFiles" multiple />
+@if (_canUpload)
+{
+    <MudText>Select files to upload:</MudText>
+    <InputFile OnChange="@StoreFiles" multiple />
 
-@if (_files is not null)
-{
-    <EditForm Model="@_model" OnValidSubmit="Submit">
-        <DataAnnotationsValidator/>
-        <ValidationSummary/>
-
-        <MudTextField @bind-Value="@_model.Prefix" Variant="Variant.Text" Placeholder="Directory..." HelperText="Directory"
-                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Folder"/>
-        @foreach ((UploadItemHeader header, IBrowserFile file) item in _model.Items.Zip(_files))
-        {
-            <MudText>@item.file.Name:</MudText>
-            <MudRadioGroup @bind-SelectedOption="@item.header.Visibility">
-                <MudRadio Option="@Visibility.Public" Color="Color.Primary" Dense="true">Public</MudRadio>
-                <MudRadio Option="@Visibility.Private" Color="Color.Primary" Dense="true">Private</MudRadio>
-                <MudRadio Option="@Visibility.Hidden" Color="Color.Primary" Dense="true">Hidden</MudRadio>
-            </MudRadioGroup>
-        }
-        <MudButton ButtonType="ButtonType.Submit">Submit</MudButton>
-    </EditForm>
-}
-@if (_inProgress)
-{
-    <MudProgressLinear Indeterminate="true" />
-}
-@if (_imgs is not null)
-{
-    @foreach (var img in _imgs)
+    @if (_files is not null)
     {
-        <ImagePreview Image="@img" Width="256" PopUpProvider="@PopUpper" />
+        <EditForm Model="@_model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator/>
+            <ValidationSummary/>
+
+            <MudTextField @bind-Value="@_model.Prefix" Variant="Variant.Text" Placeholder="Directory..." HelperText="Directory"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Folder"/>
+            @foreach ((UploadItemHeader header, IBrowserFile file) item in _model.Items.Zip(_files))
+            {
+                <MudText>@item.file.Name:</MudText>
+                @if (_uploadPrivacyOptionEnabled)
+                {
+                    <MudRadioGroup @bind-SelectedOption="@item.header.Visibility">
+                        <MudRadio Option="@Visibility.Public" Color="Color.Primary" Dense="true">Public</MudRadio>
+                        <MudRadio Option="@Visibility.Private" Color="Color.Primary" Dense="true">Private</MudRadio>
+                        <MudRadio Option="@Visibility.Hidden" Color="Color.Primary" Dense="true">Hidden</MudRadio>
+                    </MudRadioGroup>
+                }
+            }
+            <MudButton ButtonType="ButtonType.Submit">Submit</MudButton>
+        </EditForm>
     }
+    @if (_inProgress)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    @if (_imgs is not null)
+    {
+        @foreach (var img in _imgs)
+        {
+            <ImagePreview Image="@img" Width="256" PopUpProvider="@PopUpper" />
+        }
+    }
+}
+else 
+{
+    <MudText>You don't have upload privileges! Contact Austin to get them.</MudText>
 }
 
 @code {
@@ -46,6 +59,19 @@
     private IEnumerable<NamedUri>? _imgs;
     private IReadOnlyList<IBrowserFile>? _files;
     private bool _inProgress;
+    private bool _uploadPrivacyOptionEnabled;
+    private bool _canUpload;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var ulPriv = FeatureManager.IsEnabledAsync("UploadPrivacyOptions");
+        var me = await AuthClient.WhoAmI().ConfigureAwait(false);
+        if (me is not null)
+        {
+            _canUpload = me.Roles.Any(r => r.Equals(Roles.Upload, StringComparison.InvariantCultureIgnoreCase));
+        }
+        _uploadPrivacyOptionEnabled = await ulPriv;
+    }
 
     private async Task Submit()
     {

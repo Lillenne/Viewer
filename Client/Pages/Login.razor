@@ -6,41 +6,48 @@
 @inject NavigationManager Nav
 @inject IAuthClient Auth;
 
-<MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column align-items-center m-4">
-    <MudContainer MaxWidth="MaxWidth.Small">
-        <MudText Align="Align.Center" Typo="Typo.h6">Please log in</MudText>
-        <EditForm Model="@Info" OnValidSubmit="@DoLogin" class="align-items-center">
-            <DataAnnotationsValidator/>
-            <MudTextField Variant="Variant.Text" Label="Username" HelperText="Enter your email..." @bind-Value="Info.Email" For="() => Info.Email"/>
-            <PasswordBox For="@(() => Info.Password)" @bind-Value="@Info.Password"/>
-            <MudContainer Class="d-flex flex-row justify-content-evenly mt-4 mb-4">
-                <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Reset">Reset</MudButton>
-                <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Submit</MudButton>
-            </MudContainer>
-            <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-row">
-            </MudContainer>
-        </EditForm>
-        <div class="d-flex flex-row justify-content-center mt-4 mb-4">
-            <MudButton OnClick="@Register">Register</MudButton>
-        </div>
-        @if (_failed)
-        {
-            <MudText Align="Align.Center" Typo="Typo.body1" Color="Color.Error">Invalid login!</MudText>
-        }
-        @if (_loggedIn)
-        {
-            @if (AuthenticationState is not null)
+@if (_loggedIn)
+{
+    <MudText>@AlreadyLoggedIn()</MudText>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.False" Class="d-flex flex-column align-items-center m-4">
+        <MudContainer MaxWidth="MaxWidth.Small">
+            <MudText Align="Align.Center" Typo="Typo.h6">Please log in</MudText>
+            <EditForm Model="@Info" OnValidSubmit="@DoLogin" class="align-items-center">
+                <DataAnnotationsValidator/>
+                <MudTextField Variant="Variant.Text" Label="Username" HelperText="Enter your email..." @bind-Value="Info.Email" For="() => Info.Email"/>
+                <PasswordBox For="@(() => Info.Password)" @bind-Value="@Info.Password"/>
+                <MudContainer Class="d-flex flex-row justify-content-evenly mt-4 mb-4">
+                    <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Reset">Reset</MudButton>
+                    <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Submit</MudButton>
+                </MudContainer>
+                <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-row">
+                </MudContainer>
+            </EditForm>
+            <div class="d-flex flex-row justify-content-center mt-4 mb-4">
+                <MudButton OnClick="@Register">Register</MudButton>
+            </div>
+            @if (_failed)
             {
-                <MudText Align="Align.Center" Typo="Typo.h6" Color="Color.Success">Welcome, @AuthenticationState.User.Identity?.Name!</MudText>
+                <MudText Align="Align.Center" Typo="Typo.body1" Color="Color.Error">Invalid login!</MudText>
             }
-            else
+            @if (_loggedIn)
             {
-                <MudText Align="Align.Center" Typo="Typo.h6" Color="Color.Success">Welcome!</MudText>
+                @if (AuthenticationState is not null)
+                {
+                    <MudText Align="Align.Center" Typo="Typo.h6" Color="Color.Success">Welcome, @AuthenticationState.User.Identity?.Name!</MudText>
+                }
+                else
+                {
+                    <MudText Align="Align.Center" Typo="Typo.h6" Color="Color.Success">Welcome!</MudText>
+                }
+                <MudProgressCircular class="align-items-center m-4" Indeterminate="true"/>
             }
-            <MudProgressCircular class="align-items-center m-4" Indeterminate="true"/>
-        }
+        </MudContainer>
     </MudContainer>
-</MudContainer>
+}
 
 @code {
     [CascadingParameter] public AuthenticationState? AuthenticationState { get; set; }
@@ -48,10 +55,17 @@
     private UserLogin Info { get; set; } = new();
     private bool _loggedIn;
     private bool _failed;
+    private string? _myName;
+    private string AlreadyLoggedIn() => _myName is not null ? $"{_myName}, you are already logged in!" : "You are already logged in!";
     
     protected override async Task OnInitializedAsync()
     {
         _loggedIn = await Auth.GetIsLoggedIn();
+        if (_loggedIn)
+        {
+            var me = await Auth.WhoAmI();
+            _myName = me?.FirstName ?? me?.UserName;
+        }
     }
 
     private async Task DoLogin(EditContext obj)

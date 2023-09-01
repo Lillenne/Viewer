@@ -6,21 +6,12 @@ namespace Viewer.Server.Services.AuthServices;
 
 public class JwtClaimsParser : IClaimsParser
 {
-    private readonly ILogger<JwtClaimsParser> _logger;
-
-    public JwtClaimsParser(ILogger<JwtClaimsParser> logger)
-    {
-        _logger = logger;
-    }
-    
     public UserDto ParseClaims(ClaimsPrincipal principal)
     {
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null)
         {
-            var e = new InvalidOperationException("Cannot parse claims of unauthenticated user");
-            _logger.LogError(e, "Cannot parse claims of unauthenticated user");
-            throw e;
+            throw new InvalidOperationException("Cannot parse claims of unauthenticated user");
         }
         var userName = principal.FindFirstValue(JwtRegisteredClaimNames.Name);
         var roles = principal.FindAll(ClaimTypes.Role);

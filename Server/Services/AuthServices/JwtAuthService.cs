@@ -5,7 +5,6 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Viewer.Server.Configuration;
-using Viewer.Server.Models;
 using Viewer.Shared;
 using Viewer.Shared.Users;
 using User = Viewer.Server.Models.User;
@@ -15,12 +14,20 @@ namespace Viewer.Server.Services.AuthServices;
 public class JwtAuthService : IAuthService
 {
     private readonly IUserRepository _repo;
+    private readonly IClaimsParser _parser;
     private readonly JwtOptions _jwt;
 
     public JwtAuthService(IOptions<JwtOptions> options, IUserRepository repo)
     {
         _repo = repo;
+        _parser = new JwtClaimsParser();
         _jwt = options.Value;
+    }
+
+    public async Task<AuthToken> GetToken(Guid userId)
+    {
+        var user = await GetUserInformation(userId).ConfigureAwait(false);
+        return new(CreateToken(user));
     }
 
     public async Task<AuthToken> Login(UserLogin userLogin)
@@ -44,8 +51,9 @@ public class JwtAuthService : IAuthService
         if (!VerifyPassword(request.OldPassword, user.PasswordHash, user.PasswordSalt))
             throw new ArgumentException("Invalid password");
         var (hash, salt) = CreatePasswordHash(request.NewPassword);
-        user = user with { PasswordHash = hash, PasswordSalt = salt };
-        await _repo.AddUser(user);
+        user.PasswordHash = hash;
+        user.PasswordSalt = salt;
+        await _repo.UpdateUser(user);
     }
 
     public async Task Register(UserRegistration info)
@@ -62,6 +70,11 @@ public class JwtAuthService : IAuthService
             Id = Guid.NewGuid(),
         };
         await _repo.AddUser(user);
+    }
+
+    public Task<UserDto?> WhoAmI(ClaimsPrincipal principal)
+    {
+        return Task.FromResult<UserDto?>(_parser.ParseClaims(principal));
     }
 
     private static (byte[] hash, byte[] salt) CreatePasswordHash(string pwd)

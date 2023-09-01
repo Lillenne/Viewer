@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
-using Viewer.Client.Pages;
 using Viewer.Shared;
 using Viewer.Shared.Users;
 
@@ -15,11 +14,17 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     public AuthClient(IHttpClientFactory client, ILocalStorageService storage)
     {
         _storage = storage;
-        _client = client.CreateClient("api");
+        _client = client.CreateClient(ApiClientKey);
     }
 
     private readonly HttpClient _client;
     private readonly ILocalStorageService _storage;
+
+    public async Task<UserDto?> WhoAmI()
+    {
+        var me = await _client.GetFromJsonAsync<UserDto>(ApiRoutes.Auth.WhoAmI).ConfigureAwait(false);
+        return me;
+    }
 
     public async Task<bool> Login(UserLogin login)
     {
@@ -29,11 +34,11 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
         if (response.StatusCode != HttpStatusCode.OK)
             return false;
 
-        var token = await response.Content.ReadFromJsonAsync<AuthToken>();
+        var token = await response.Content.ReadFromJsonAsync<AuthToken>().ConfigureAwait(false);
         if (string.IsNullOrEmpty(token.Token))
             return false;
 
-        await StoreToken(token);
+        await StoreToken(token).ConfigureAwait(false);
         NotifyAuthStateChanged();
         return true;
     }
@@ -43,10 +48,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
         var response = await _client
             .PostAsJsonAsync(ApiRoutes.Auth.ChangePassword, request)
             .ConfigureAwait(false);
-        return response.StatusCode
-            is HttpStatusCode.OK
-                or HttpStatusCode.Created
-                or HttpStatusCode.NoContent;
+        return response.IsSuccessStatusCode;
     }
 
     public async Task<bool> Register(UserRegistration info)
@@ -73,6 +75,8 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     }
 
     private const string JwtKey = "jwt";
+    private const string ApiClientKey = "api";
+    private const string WhoAmIStorageKey = "whoami";
 
     private static AuthenticationState GuestState { get; } = GetGuestState();
 

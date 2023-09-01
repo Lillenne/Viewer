@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Viewer.Shared;
 using Viewer.Shared.Users;
 
@@ -5,6 +6,11 @@ namespace Viewer.Server.Services.AuthServices;
 
 public class AuthServiceStub : IAuthService
 {
+    public Task<AuthToken> GetToken(Guid userId)
+    {
+        return Task.FromResult(new AuthToken(string.Empty));
+    }
+
     public Task<AuthToken> Login(UserLogin userLogin)
     {
         return userLogin?.Email?.Equals("Fail", StringComparison.OrdinalIgnoreCase) ?? true
@@ -24,5 +30,10 @@ public class AuthServiceStub : IAuthService
         return info?.Username?.Equals("Fail", StringComparison.OrdinalIgnoreCase) ?? true
             ? Task.FromException(new Exception("Fail"))
             : Task.FromResult(true);
+    }
+
+    public Task<UserDto?> WhoAmI(ClaimsPrincipal principal)
+    {
+        return Task.FromResult<UserDto?>(null);
     }
 }
