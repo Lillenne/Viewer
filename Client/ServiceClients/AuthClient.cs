@@ -72,7 +72,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         if (!await _storage.ContainKeyAsync(JwtKey).ConfigureAwait(false))
-            return GuestState;
+            return new AuthenticationState(new ClaimsPrincipal());
         var token = await _storage.GetItemAsStringAsync(JwtKey).ConfigureAwait(false);
         var jwt = new JwtSecurityToken(token);
         // TODO expiration?
@@ -85,23 +85,8 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     private const string ApiClientKey = "api";
     private const string WhoAmIStorageKey = "whoami";
 
-    private static AuthenticationState GuestState { get; } = GetGuestState();
-
-    private static AuthenticationState GetGuestState()
-    {
-        var claims = new List<Claim> { new(ClaimTypes.Name, "Guest") };
-        var id = new ClaimsIdentity(claims);
-        var principal = new ClaimsPrincipal(id);
-        var state = new AuthenticationState(principal);
-        return state;
-    }
-
-    public async Task<bool> GetIsLoggedIn()
-    {
-        // TODO expiry
-        return (await _storage.GetItemAsStringAsync(JwtKey, default).ConfigureAwait(false))
-            is not null;
-    }
+    public async Task<bool> GetIsLoggedIn() 
+        => await _storage.GetItemAsStringAsync(JwtKey, default).ConfigureAwait(false) is not null;
 
     public async Task SignOut()
     {

@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using Blazored.LocalStorage;
 
@@ -19,7 +20,9 @@ public class AuthHandler : DelegatingHandler
     {
         var token = await _ss.GetItemAsStringAsync("jwt", cancellationToken).ConfigureAwait(false);
         if (token is not null)
+        {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
         return await base.SendAsync(request, cancellationToken);
     }
 }

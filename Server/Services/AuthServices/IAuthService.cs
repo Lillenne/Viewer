@@ -10,4 +10,5 @@ public interface IAuthService
     Task ChangePassword(ChangePasswordRequest request);
     Task Register(UserRegistration info);
     Task<UserDto?> WhoAmI(ClaimsPrincipal principal);
+    Task<string> Refresh(string token, string refreshToken);
 }

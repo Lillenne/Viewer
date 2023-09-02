@@ -21,4 +21,18 @@ public record User
     public virtual ICollection<User> Friends { get; set; } = new List<User>();
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
+
+    public static implicit operator UserDto(User u)
+    {
+        return new UserDto
+        {
+            Id = u.Id,
+            Email = u.Email,
+            UserName = u.UserName,
+            FirstName = u.FirstName,
+            LastName = u.LastName,
+            PhoneNumber = u.PhoneNumber,
+            Roles = u.Roles.Select(r => r.RoleName).ToList()
+        };
+    }
 }

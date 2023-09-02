@@ -16,3 +16,9 @@ public interface IUploadRepository
     Task<Upload> GetUpload(Guid id);
     Task AddUpload(Upload upload);
 }
+
+public interface ITokenRepository
+{
+    public Task<Tokens?> GetTokenInfoAsync(Guid userId);
+    public Task UpdateTokenInfoAsync(Tokens info);
+}

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Shared;
@@ -9,11 +10,13 @@ namespace Viewer.Server.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    public AuthController(IAuthService authService)
+    public AuthController(ILogger<AuthController> logger, IAuthService authService)
     {
+        _logger = logger;
         _authService = authService;
     }
 
+    private readonly ILogger<AuthController> _logger;
     private readonly IAuthService _authService;
 
     [HttpGet("whoami")]
@@ -35,6 +38,23 @@ public class AuthController : ControllerBase
         catch (Exception e)
         {
             return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<string>> Refresh(AuthToken token)
+    {
+        if (token.RefreshToken is null)
+            return BadRequest();
+        try
+        {
+            return await _authService.Refresh(token.Token, token.RefreshToken).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in refresh");
+            return BadRequest();
         }
     }
 

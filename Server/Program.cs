@@ -53,7 +53,7 @@ builder.Services.AddScoped<IImageService, MinioImageService>();
 
 // Jwt
 builder.Services.AddScoped<IClaimsParser,JwtClaimsParser>();
-builder.Services.AddScoped<IAuthService, JwtAuthService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.Configure<JwtOptions>(config.GetSection("JwtSettings"));
 builder.Services
     .AddAuthentication(o =>
@@ -65,6 +65,7 @@ builder.Services
     })
     .AddJwtBearer(o =>
     {
+        o.SaveToken = true;
         o.TokenValidationParameters = new TokenValidationParameters()
         {
             IssuerSigningKey = new SymmetricSecurityKey(
@@ -77,6 +78,15 @@ builder.Services
             ValidateLifetime = false, // TODO
             ValidateIssuerSigningKey = true,
             NameClaimType = JwtRegisteredClaimNames.Name,
+        };
+        o.Events = new JwtBearerEvents()
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                if (ctx.Exception is SecurityTokenExpiredException)
+                    ctx.Response.Headers.Add(Constants.TokenExpiredHeader, Constants.TokenExpiredValue);
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -102,10 +112,12 @@ builder.Services.AddDbContext<DataContext>(
 builder.Services.AddScoped<DataContext>();
 builder.Services.AddScoped<IUserRepository>(sp => sp.GetRequiredService<DataContext>());
 builder.Services.AddScoped<IUploadRepository>(sp => sp.GetRequiredService<DataContext>());
+builder.Services.AddScoped<ITokenRepository>(sp => sp.GetRequiredService<DataContext>());
 
 // Misc DI
 builder.Services.AddScoped<Cart>();
 builder.Services.AddTransient<IFriendSuggestor, FirstInDbSuggestor>();
+builder.Services.AddTransient<ITokenService, JwtTokenService>();
 
 // Email
 builder.Services.AddTransient<EmailClient>();
@@ -133,11 +145,6 @@ using (var scope = app.Services.CreateScope())
 {
     using var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     db.Database.EnsureCreated();
-    var usr = await db.GetUserByUsername("lillenne");
-    var r = db.Role.First(r => r.RoleName == "upload");
-    usr.Roles.Add(r);
-    db.Users.Update(usr);
-    db.SaveChanges();
 }
 
 app.UseHttpsRedirection();

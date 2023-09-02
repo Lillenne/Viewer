@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
-using System.Security.Claims;
 
 namespace Viewer.Shared.Users;
 
@@ -8,7 +7,7 @@ public class UserDto
 {
     public required Guid Id { get; init; }
     public required string Email { get; init; }
-    public string? UserName { get; init; }
+    public required string UserName { get; init; }
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
     public string? PhoneNumber { get; init; }

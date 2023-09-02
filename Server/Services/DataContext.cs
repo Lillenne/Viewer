@@ -4,12 +4,13 @@ using Viewer.Server.Models;
 
 namespace Viewer.Server.Services
 {
-    public class DataContext : DbContext, IUserRepository, IUploadRepository
+    public class DataContext : DbContext, IUserRepository, IUploadRepository, ITokenRepository
     {
         public DbSet<User> Users => Set<User>();
         public DbSet<Group> UserGroups => Set<Group>();
         public DbSet<Upload> Uploads => Set<Upload>();
         public DbSet<Role> Role => Set<Role>();
+        public DbSet<Tokens> Tokens => Set<Tokens>();
 
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {
@@ -95,6 +96,17 @@ namespace Viewer.Server.Services
         {
             await Uploads.AddAsync(upload).ConfigureAwait(false);
             _ = await SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        public Task<Tokens?> GetTokenInfoAsync(Guid userId)
+        {
+            return Tokens.FirstOrDefaultAsync(t => t.UserId == userId);
+        }
+
+        public Task UpdateTokenInfoAsync(Tokens info)
+        {
+            Tokens.Update(info);
+            return SaveChangesAsync();
         }
     }
 }

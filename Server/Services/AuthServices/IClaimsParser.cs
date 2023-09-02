@@ -13,5 +13,7 @@ public interface IClaimsParser
      /// <returns>The user's information</returns>
      UserDto ParseClaims(ClaimsPrincipal principal);
 
+     IEnumerable<Claim> ToClaims(UserDto user);
+
      bool IsAuthenticated(ClaimsPrincipal principal);
 }
