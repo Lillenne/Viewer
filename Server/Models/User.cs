@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Viewer.Shared;
 using Viewer.Shared.Users;
 
 namespace Viewer.Server.Models;
@@ -27,12 +28,9 @@ public record User
         return new UserDto
         {
             Id = u.Id,
-            Email = u.Email,
             UserName = u.UserName,
             FirstName = u.FirstName,
-            LastName = u.LastName,
-            PhoneNumber = u.PhoneNumber,
-            Roles = u.Roles.Select(r => r.RoleName).ToList()
+            Roles = u.Roles?.Select(r => r.RoleName).ToList() ?? new List<string>()
         };
     }
 }

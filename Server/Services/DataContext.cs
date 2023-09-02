@@ -18,7 +18,7 @@ namespace Viewer.Server.Services
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseLazyLoadingProxies();
+            optionsBuilder.UseLazyLoadingProxies().UseNpgsql(o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
             base.OnConfiguring(optionsBuilder);
         }
 
@@ -103,10 +103,18 @@ namespace Viewer.Server.Services
             return Tokens.FirstOrDefaultAsync(t => t.UserId == userId);
         }
 
-        public Task UpdateTokenInfoAsync(Tokens info)
+        public async Task UpdateTokenInfoAsync(Tokens info)
         {
-            Tokens.Update(info);
-            return SaveChangesAsync();
+            var tk = await Tokens.FirstOrDefaultAsync(i => i.UserId == info.UserId).ConfigureAwait(false);
+            if (tk is null)
+                Tokens.Add(info);
+            else
+            {
+                tk.RefreshToken = info.RefreshToken;
+                tk.RefreshTokenExpiry = info.RefreshTokenExpiry;
+                Tokens.Update(tk);
+            }
+            await SaveChangesAsync().ConfigureAwait(false);
         }
     }
 }

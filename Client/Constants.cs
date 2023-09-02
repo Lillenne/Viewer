@@ -22,6 +22,7 @@ public static class ApiRoutes
         public const string Register = $"{Base}register";
         public const string ChangePassword = $"{Base}change-pwd";
         public const string WhoAmI = $"{Base}whoami";
+        public const string Refresh = $"{Base}refresh";
     }
 
     public static class ImageAccess

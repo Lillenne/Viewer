@@ -7,6 +7,6 @@ public class Tokens
 {
     [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
     public required Guid UserId { get; init; }
-    public required string RefreshToken { get; init; }
-    public DateTime RefreshTokenExpiry { get; init; }
+    public required string RefreshToken { get; set; }
+    public required DateTime RefreshTokenExpiry { get; set; }
 }

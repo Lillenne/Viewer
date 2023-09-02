@@ -20,10 +20,12 @@ public class JwtTokenService : ITokenService
         var val = new TokenValidationParameters
         {
             ValidateAudience = true,
+            ValidAudience = _jwt.Audience,
             ValidateIssuer = true,
+            ValidIssuer = _jwt.Issuer,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(_jwt.KeyBytes),
-            ValidateLifetime = true,
+            ValidateLifetime = false,
         };
         var principal = new JwtSecurityTokenHandler().ValidateToken(token, val, out var secToken);
         if (secToken is not JwtSecurityToken)
@@ -39,7 +41,7 @@ public class JwtTokenService : ITokenService
         var descriptor = new SecurityTokenDescriptor()
         {
             Subject = identity,
-            Expires = DateTime.UtcNow.AddMinutes(_jwt.ExpiryTimeMinutes),
+            Expires = DateTime.UtcNow.AddSeconds(_jwt.ExpiryTimeSeconds),
             Issuer = _jwt.Issuer,
             Audience = _jwt.Audience,
             SigningCredentials = creds

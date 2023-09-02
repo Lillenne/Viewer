@@ -11,14 +11,14 @@ namespace Viewer.Client.ServiceClients;
 
 public class AuthClient : AuthenticationStateProvider, IAuthClient
 {
-    public AuthClient(IHttpClientFactory client, ILocalStorageService storage)
+    public AuthClient(IHttpClientFactory client, TokenHandler handler)
     {
-        _storage = storage;
+        _storage = handler;
         _client = client.CreateClient(ApiClientKey);
     }
 
     private readonly HttpClient _client;
-    private readonly ILocalStorageService _storage;
+    private readonly TokenHandler _storage;
 
     public async Task<UserDto?> WhoAmI()
     {
@@ -45,7 +45,8 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
         if (string.IsNullOrEmpty(token.Token))
             return false;
 
-        await StoreToken(token).ConfigureAwait(false);
+        await _storage.StoreToken(token.Token).ConfigureAwait(false);
+        await _storage.StoreRefreshToken(token.RefreshToken!).ConfigureAwait(false);
         NotifyAuthStateChanged();
         return true;
     }
@@ -65,17 +66,13 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
             .ConfigureAwait(false);
         return response.IsSuccessStatusCode;
     }
-
-    private async Task StoreToken(AuthToken token) =>
-        await _storage.SetItemAsStringAsync(JwtKey, token.Token).ConfigureAwait(false);
-
+    
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        if (!await _storage.ContainKeyAsync(JwtKey).ConfigureAwait(false))
+        var key = await _storage.GetToken().ConfigureAwait(false);
+        if (key is null)
             return new AuthenticationState(new ClaimsPrincipal());
-        var token = await _storage.GetItemAsStringAsync(JwtKey).ConfigureAwait(false);
-        var jwt = new JwtSecurityToken(token);
-        // TODO expiration?
+        var jwt = new JwtSecurityToken(key);
         var identity = new ClaimsIdentity(jwt.Claims, "Authorized");
         var principal = new ClaimsPrincipal(identity);
         return new AuthenticationState(principal);
@@ -85,12 +82,11 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     private const string ApiClientKey = "api";
     private const string WhoAmIStorageKey = "whoami";
 
-    public async Task<bool> GetIsLoggedIn() 
-        => await _storage.GetItemAsStringAsync(JwtKey, default).ConfigureAwait(false) is not null;
+    public async Task<bool> GetIsLoggedIn() => await _storage.GetToken().ConfigureAwait(false) is not null;
 
     public async Task SignOut()
     {
-        await _storage.RemoveItemAsync(JwtKey, default);
+        await _storage.ClearTokens();
         NotifyAuthStateChanged();
     }
 

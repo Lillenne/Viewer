@@ -34,7 +34,7 @@ public class AuthService : IAuthService
         var info = await _tokenRepository.GetTokenInfoAsync(usr.Id).ConfigureAwait(false);
         if (info is null)
             throw new InvalidOperationException("Refresh token unavailable");
-        if (info.RefreshTokenExpiry > DateTime.Now)
+        if (info.RefreshTokenExpiry < DateTime.Now)
             throw new InvalidOperationException("Refresh token expired");
         if (info.RefreshToken != refreshToken)
             throw new ArgumentException("Refresh token mismatch");

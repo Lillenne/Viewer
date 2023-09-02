@@ -13,34 +13,30 @@ public class JwtClaimsParser : IClaimsParser
         {
             new(JwtRegisteredClaimNames.Name, user.UserName),
             new(JwtRegisteredClaimNames.NameId, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.AuthTime, time.ToShortTimeString()),
         };
-        claims.AddRange(user.Roles.Select(r => new Claim(ClaimTypes.Role, r)));
+        foreach (var role in user.Roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
         if (user.FirstName is not null)
             claims.Add(new(JwtRegisteredClaimNames.GivenName, user.FirstName));
-        if (user.LastName is not null)
-            claims.Add(new(JwtRegisteredClaimNames.FamilyName, user.LastName));
         return claims;
     }
     public UserDto ParseClaims(ClaimsPrincipal principal)
     {
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId is null)
+        var userName = principal.FindFirstValue(JwtRegisteredClaimNames.Name);
+        if (userId is null || userName is null)
         {
             throw new InvalidOperationException("Cannot parse claims of unauthenticated user");
         }
-        var userName = principal.FindFirstValue(JwtRegisteredClaimNames.Name);
         var roles = principal.FindAll(ClaimTypes.Role);
         return new UserDto
         {
             Id = Guid.Parse(userId),
             UserName = userName,
-            Email = principal.FindFirstValue(ClaimTypes.Email) ??
-                    throw new ArgumentException("User email not registered"),
             FirstName = principal.FindFirstValue(ClaimTypes.GivenName),
-            LastName = principal.FindFirstValue(ClaimTypes.Surname),
-            PhoneNumber = principal.FindFirstValue(ClaimTypes.MobilePhone),
             Roles = roles.Select(c => c.Value).ToList()
         };
     }

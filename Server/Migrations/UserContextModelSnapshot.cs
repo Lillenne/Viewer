@@ -102,6 +102,23 @@ namespace Viewer.Server.Migrations
                     b.ToTable("Role");
                 });
 
+            modelBuilder.Entity("Viewer.Server.Models.Tokens", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RefreshTokenExpiry")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("Tokens");
+                });
+
             modelBuilder.Entity("Viewer.Server.Models.Upload", b =>
                 {
                     b.Property<Guid>("UploadId")
