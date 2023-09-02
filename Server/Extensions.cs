@@ -3,9 +3,15 @@ using Viewer.Shared.Users;
 
 namespace Viewer.Server;
 
+public static class Policies
+{
+    public const string UploadPolicy = "upload-privilege";
+    public const string DownloadPolicy = "download-privilege";
+}
+
 public static class Extensions
 {
-    public static IEnumerable<Identity> GroupIdentities(this IEnumerable<UserGroup> groups)
+    public static IEnumerable<Identity> GroupIdentities(this IEnumerable<Group> groups)
     {
         return groups.Select(g => new Identity
         {

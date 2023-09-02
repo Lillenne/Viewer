@@ -22,8 +22,15 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
 
     public async Task<UserDto?> WhoAmI()
     {
-        var me = await _client.GetFromJsonAsync<UserDto>(ApiRoutes.Auth.WhoAmI).ConfigureAwait(false);
-        return me;
+        try
+        {
+            var me = await _client.GetFromJsonAsync<UserDto>(ApiRoutes.Auth.WhoAmI).ConfigureAwait(false);
+            return me;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task<bool> Login(UserLogin login)

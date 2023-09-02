@@ -42,8 +42,3 @@ public static class ApiRoutes
         public const string SuggestFriends = $"{Base}/findfriends";
     }
 }
-
-public static class Roles
-{
-    public const string Upload = "upload";
-}

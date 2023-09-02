@@ -36,4 +36,8 @@ public class Upload
     /// The default access policy for the upload
     /// </summary>
     public required Visibility Visibility { get; set; }
+
+    public string StoredName() => DirectoryPrefix is null
+        ? UploadId.ToString()
+        : Path.Combine(DirectoryPrefix, UploadId.ToString());
 }

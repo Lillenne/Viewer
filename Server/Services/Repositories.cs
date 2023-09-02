@@ -9,7 +9,7 @@ public interface IUserRepository
     Task<User> GetUser(string email);
     Task UpdateUser(User user);
     Task AddUser(User user);
-    Task AddUserGroup(UserGroup group);
+    Task AddUserGroup(Group group);
 }
 public interface IUploadRepository
 {

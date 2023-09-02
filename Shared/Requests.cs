@@ -37,12 +37,12 @@ public class GetImageRequest
 
 public class DownloadImagesRequest
 {
-    public required IEnumerable<GetImageRequest> Images { get; init; }
+    public required IEnumerable<Guid> Images { get; init; }
 
     public DownloadImagesRequest(){}
     
     [SetsRequiredMembers]
-    public DownloadImagesRequest(IEnumerable<GetImageRequest> images)
+    public DownloadImagesRequest(IEnumerable<Guid> images)
     {
         Images = images;
     }

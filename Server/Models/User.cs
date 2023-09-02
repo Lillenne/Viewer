@@ -15,8 +15,10 @@ public record User
     public required string Email { get; init; }
     public required byte[] PasswordHash { get; set; }
     public required byte[] PasswordSalt { get; set; }
-    public virtual ICollection<UserGroup>? Groups { get; set; }
-    public virtual ICollection<Album>? Albums { get; set; }
-    public virtual ICollection<User>? Friends { get; set; }
-    public virtual ICollection<RoleMember>? Roles { get; set; }
+    public virtual ICollection<Upload> Uploads { get; set; } = new List<Upload>();
+    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
+    public virtual ICollection<Album> Albums { get; set; } = new List<Album>();
+    public virtual ICollection<User> Friends { get; set; } = new List<User>();
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
 }

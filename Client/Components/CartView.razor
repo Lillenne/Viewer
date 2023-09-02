@@ -10,7 +10,7 @@
     }
     else
     {
-        <MudButton Variant="Variant.Filled" FullWidth="true" OnClick="InvokeCallback">Download</MudButton>
+        <MudButton Class="mt-5" Variant="Variant.Filled" FullWidth="true" OnClick="InvokeCallback">Download</MudButton>
         @foreach (var item in Cart.Images)
         {
             <div style="margin: 10px;" class="gray-hover" @onclick="@(e => Clicked(e, item))">

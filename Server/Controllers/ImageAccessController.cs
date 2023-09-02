@@ -33,7 +33,7 @@ public class ImageAccessController : ControllerBase
     #region Post
     
     [HttpPost]
-    public async Task<ActionResult<GetImagesResponse>> Post(GetImagesRequest request)
+    public async Task<ActionResult<GetImagesResponse>> GetImages(GetImagesRequest request)
     {
         try
         {
@@ -49,7 +49,7 @@ public class ImageAccessController : ControllerBase
     }
     
     [HttpPost("upload")]
-    [Authorize(Policy = "upload-privilege")]
+    [Authorize(Policy = Policies.UploadPolicy)]
     public async Task<ActionResult<GetImagesResponse>> PostFiles([FromForm] string header, [FromForm] IList<IFormFile> files)
     {
         _logger.LogInformation("Received {FilesCount} file upload from {FindFirst}", files.Count, 
@@ -80,6 +80,24 @@ public class ImageAccessController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, "Error in post files");
+            return StatusCode(500);
+        }
+    }
+
+    [HttpPost("download")]
+    [Authorize(Policy = Policies.DownloadPolicy)]
+    public async Task<ActionResult<NamedUri>> Download(DownloadImagesRequest images)
+    {
+        try
+        {
+            var user = _identifier.ParseClaims(HttpContext.User);
+            _logger.LogInformation("Received download request from {Id}", user.Id);
+            var archive = await _service.CreateArchive(user.Id, images.Images).ConfigureAwait(false);
+            return archive;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error creating download");
             return StatusCode(500);
         }
     }

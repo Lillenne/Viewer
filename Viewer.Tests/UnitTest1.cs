@@ -1,6 +1,6 @@
 using Viewer.Server.Services.ImageServices;
 
-namespace Tests;
+namespace Viewer.Tests;
 
 public class UnitTest1
 {

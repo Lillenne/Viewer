@@ -67,7 +67,7 @@
     {
         var req = new DownloadImagesRequest()
         {
-            Images = arg.Images.Select(i => new GetImageRequest { Width = -1, Height = -1, Id = i.Id })
+            Images = arg.Images.Select(i => i.Id)
         };
         await Client.Download(req);
     }

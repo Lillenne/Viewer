@@ -33,6 +33,6 @@ public class ImagePopUpProvider
             NoHeader = true
         };
         var parameters = new DialogParameters { { "Source", disp } };
-        _ = _ds.Show<ImagePopUp>(string.Empty, parameters, opts);
+        _ = await _ds.ShowAsync<ImagePopUp>(string.Empty, parameters, opts);
     }
 }

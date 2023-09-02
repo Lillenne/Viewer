@@ -30,39 +30,59 @@ namespace Viewer.Server.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<Guid?>("UserGroupId")
-                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserGroupId");
+                    b.HasIndex("GroupId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("Album");
                 });
 
+            modelBuilder.Entity("Viewer.Server.Models.Group", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserGroups");
+                });
+
             modelBuilder.Entity("Viewer.Server.Models.GroupMember", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GroupId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("UserGroupId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserGroupId");
+                    b.HasIndex("GroupId");
 
                     b.ToTable("GroupMember");
                 });
@@ -80,27 +100,6 @@ namespace Viewer.Server.Migrations
                     b.HasKey("RoleId");
 
                     b.ToTable("Role");
-                });
-
-            modelBuilder.Entity("Viewer.Server.Models.RoleMember", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RoleMember");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.Upload", b =>
@@ -176,66 +175,50 @@ namespace Viewer.Server.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>
+            modelBuilder.Entity("Viewer.Server.Models.UserRole", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<Guid>("RoleId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.HasKey("Id");
+                    b.HasKey("RoleId", "UserId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserGroups");
+                    b.ToTable("UserRole");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.Album", b =>
                 {
-                    b.HasOne("Viewer.Server.Models.UserGroup", null)
+                    b.HasOne("Viewer.Server.Models.Group", null)
                         .WithMany("Albums")
-                        .HasForeignKey("UserGroupId");
+                        .HasForeignKey("GroupId");
 
                     b.HasOne("Viewer.Server.Models.User", null)
                         .WithMany("Albums")
                         .HasForeignKey("UserId");
                 });
 
+            modelBuilder.Entity("Viewer.Server.Models.Group", b =>
+                {
+                    b.HasOne("Viewer.Server.Models.User", null)
+                        .WithMany("Groups")
+                        .HasForeignKey("UserId");
+                });
+
             modelBuilder.Entity("Viewer.Server.Models.GroupMember", b =>
                 {
+                    b.HasOne("Viewer.Server.Models.Group", null)
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId");
+
                     b.HasOne("Viewer.Server.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Viewer.Server.Models.UserGroup", null)
-                        .WithMany("Members")
-                        .HasForeignKey("UserGroupId");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Viewer.Server.Models.RoleMember", b =>
-                {
-                    b.HasOne("Viewer.Server.Models.Role", "Role")
-                        .WithMany("RoleMembers")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Viewer.Server.Models.User", "User")
-                        .WithMany("Roles")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
 
                     b.Navigation("User");
                 });
@@ -247,7 +230,7 @@ namespace Viewer.Server.Migrations
                         .HasForeignKey("AlbumId");
 
                     b.HasOne("Viewer.Server.Models.User", "Owner")
-                        .WithMany()
+                        .WithMany("Uploads")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -262,11 +245,23 @@ namespace Viewer.Server.Migrations
                         .HasForeignKey("UserId");
                 });
 
-            modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>
+            modelBuilder.Entity("Viewer.Server.Models.UserRole", b =>
                 {
-                    b.HasOne("Viewer.Server.Models.User", null)
-                        .WithMany("Groups")
-                        .HasForeignKey("UserId");
+                    b.HasOne("Viewer.Server.Models.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Viewer.Server.Models.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.Album", b =>
@@ -274,9 +269,16 @@ namespace Viewer.Server.Migrations
                     b.Navigation("Uploads");
                 });
 
+            modelBuilder.Entity("Viewer.Server.Models.Group", b =>
+                {
+                    b.Navigation("Albums");
+
+                    b.Navigation("Members");
+                });
+
             modelBuilder.Entity("Viewer.Server.Models.Role", b =>
                 {
-                    b.Navigation("RoleMembers");
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("Viewer.Server.Models.User", b =>
@@ -287,14 +289,9 @@ namespace Viewer.Server.Migrations
 
                     b.Navigation("Groups");
 
-                    b.Navigation("Roles");
-                });
+                    b.Navigation("Uploads");
 
-            modelBuilder.Entity("Viewer.Server.Models.UserGroup", b =>
-                {
-                    b.Navigation("Albums");
-
-                    b.Navigation("Members");
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

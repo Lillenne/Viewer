@@ -1,15 +1,18 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
 using Viewer.Shared;
 
 namespace Viewer.Client.ServiceClients;
 
 public class ImageClient : IImageClient
 {
+    private readonly IJSRuntime _js;
     private readonly HttpClient _client;
 
-    public ImageClient(IHttpClientFactory client)
+    public ImageClient(IHttpClientFactory client, IJSRuntime js)
     {
+        _js = js;
         _client = client.CreateClient("api");
     }
 
@@ -71,8 +74,11 @@ public class ImageClient : IImageClient
         var response = await _client.PostAsJsonAsync(ApiRoutes.ImageAccess.Download, request);
         if (response.IsSuccessStatusCode)
         {
+            var uri = await response.Content.ReadFromJsonAsync<NamedUri>().ConfigureAwait(false);
+            if (uri is null)
             // TODO notify user. Popup maybe?
-            return; 
+                return;
+            await _js.InvokeVoidAsync("triggerFileDownload", uri.Name, uri.Uri).ConfigureAwait(false);
         }
     }
 }

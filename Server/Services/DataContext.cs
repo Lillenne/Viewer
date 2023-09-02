@@ -7,7 +7,7 @@ namespace Viewer.Server.Services
     public class DataContext : DbContext, IUserRepository, IUploadRepository
     {
         public DbSet<User> Users => Set<User>();
-        public DbSet<UserGroup> UserGroups => Set<UserGroup>();
+        public DbSet<Group> UserGroups => Set<Group>();
         public DbSet<Upload> Uploads => Set<Upload>();
         public DbSet<Role> Role => Set<Role>();
 
@@ -23,15 +23,14 @@ namespace Viewer.Server.Services
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            /*
-            modelBuilder.Entity<UserGroup>()
-                .HasMany(ug => ug.Members)
-                .WithMany(u => u.Groups)
-                .UsingEntity<UserUserGroup>(
-                    uug => uug.HasOne(u => u.User).WithMany().HasForeignKey(u => u.UserId),
-                    uug => uug.HasOne(u => u.UserGroup).WithMany().HasForeignKey(u => u.GroupName)
-        );
-            */
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Roles)
+                .WithMany(r => r.RoleMembers)
+                .UsingEntity<UserRole>();
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Uploads)
+                .WithOne(u => u.Owner)
+                .HasForeignKey(u => u.OwnerId);
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
@@ -76,12 +75,12 @@ namespace Viewer.Server.Services
             _ = await SaveChangesAsync();
         }
 
-        public Task<UserGroup> GetUserGroup(string name)
+        public Task<Group> GetUserGroup(string name)
         {
             return UserGroups.SingleAsync(g => g.Name.Equals(name));
         }
 
-        public async Task AddUserGroup(UserGroup group)
+        public async Task AddUserGroup(Group group)
         {
             _ = await UserGroups.AddAsync(group).ConfigureAwait(false);
             _ = await SaveChangesAsync().ConfigureAwait(false);

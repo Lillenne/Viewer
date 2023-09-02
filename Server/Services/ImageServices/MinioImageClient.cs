@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using System.Reactive.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Minio;
@@ -11,35 +13,33 @@ using Upload = Viewer.Server.Models.Upload;
 
 namespace Viewer.Server.Services.ImageServices;
 
-// Minio organization: Bucket > (User/Team) UUID > Image/Thumbnail/Archive > Item UUID (image/webp thumbnail/zip)
-// TODO update the very inefficient string handling & many extra Guid.ToString() calls
+// Minio organization: Bucket > (User/Team) UUID > Image/Thumbnail/Archive/etc > Item UUID (image/webp thumbnail/zip)
 public partial class MinioImageClient
 {
-    private int DefaultLinkExpiryTimeSeconds { get;}
-    private IMinioClient Minio { get; }
-    
+    private readonly IMinioClient _minio;
+    private readonly int[] _thumbnailWidths;
+    private readonly int _defaultLinkExpiryTimeSeconds;
     private readonly string _bucket;
     private const string ImagePrefix = "images";
     private const string ThumbnailPrefix = "thumbnails";
     private const string ArchivePrefix = "archive";
-    private int[] ThumbnailWidths { get; }
     
     public MinioImageClient(IOptions<MinioOptions> minioConfig)
     {
-        DefaultLinkExpiryTimeSeconds = minioConfig.Value.DefaultLinkExpiryTimeSeconds;
+        _defaultLinkExpiryTimeSeconds = minioConfig.Value.DefaultLinkExpiryTimeSeconds;
         _bucket = minioConfig.Value.Bucket;
-        ThumbnailWidths = minioConfig.Value.ThumbnailWidths ?? new int[] { 128 };
-        if (ThumbnailWidths.Length == 0)
-            ThumbnailWidths = new int[] { 128 };
+        _thumbnailWidths = minioConfig.Value.ThumbnailWidths ?? new int[] { 128 };
+        if (_thumbnailWidths.Length == 0)
+            _thumbnailWidths = new int[] { 128 };
 
-        Minio = new MinioClient()
+        _minio = new MinioClient()
             .WithCredentials(minioConfig.Value.AccessKey, minioConfig.Value.SecretKey)
             .WithEndpoint(minioConfig.Value.Endpoint, minioConfig.Value.Port)
             .WithSSL(minioConfig.Value.UseHttps)
             .Build();
     }
 
-    public Task<IReadOnlyList<DirectoryTreeItem>> GetDirectories(IEnumerable<Identity> ids)
+    public Task<IReadOnlyList<DirectoryTreeItem>> GetImageDirectories(IEnumerable<Identity> ids)
     {
         var l = ids.Select((i, idx) =>
         {
@@ -52,15 +52,16 @@ public partial class MinioImageClient
         return Task.FromResult<IReadOnlyList<DirectoryTreeItem>>(l);
     }
 
-    public Task<string> GetPresignedImageUri(Guid sourceId, string key, string? prefix = null, CancellationToken token = default)
+    public Task<string> GetPresignedImageUri(ReadOnlySpan<char> sourceId, ReadOnlySpan<char> key)
     {
-        var pUrlArgs = ImageObjectArgs<PresignedGetObjectArgs>(sourceId, prefix, key).WithExpiry(DefaultLinkExpiryTimeSeconds);
-        return Minio.PresignedGetObjectAsync(pUrlArgs);
+        var p = PrefixImage(sourceId, key);
+        var pUrlArgs = ObjectArgs<PresignedGetObjectArgs>(p).WithExpiry(_defaultLinkExpiryTimeSeconds);
+        return _minio.PresignedGetObjectAsync(pUrlArgs);
     }
 
-    public async IAsyncEnumerable<(string Key, string Uri)> GetClosestThumbnails(int w, Guid sourceId, string? prefix = null)
+    public async IAsyncEnumerable<(string Key, string Uri)> GetClosestThumbnails(int w, string sourceId, string? prefix = null)
     {
-        string path = PrefixThumbnail(sourceId, prefix, null);
+        string path = PrefixThumbnail(sourceId, prefix ?? string.Empty);
         var items = ListItems(path);
         var closestW = GetClosestThumbnailWidth(w);
         IEnumerable<Item> it = items.Where(i => !i.IsDir)
@@ -69,16 +70,10 @@ public partial class MinioImageClient
             .Where(i => i is not null)!;
         foreach (var i in it)
         {
-            var pUrlArgs = Args<PresignedGetObjectArgs>().WithObject(i.Key).WithExpiry(DefaultLinkExpiryTimeSeconds);
-            var pUrl = await Minio.PresignedGetObjectAsync(pUrlArgs).ConfigureAwait(false);
+            var pUrlArgs = Args<PresignedGetObjectArgs>().WithObject(i.Key).WithExpiry(_defaultLinkExpiryTimeSeconds);
+            var pUrl = await _minio.PresignedGetObjectAsync(pUrlArgs).ConfigureAwait(false);
             yield return (RemoveThumbnailTag(i.Key), pUrl);
         }
-    }
-
-    private IEnumerable<Item> ListItems(string path)
-    {
-        var args = Args<ListObjectsArgs>().WithPrefix(path);
-        return Minio.ListObjectsAsync(args).ToEnumerable();
     }
 
     /// <summary>
@@ -89,9 +84,10 @@ public partial class MinioImageClient
     /// <returns>A link to the resource</returns>
     public async Task<string> Upload(Upload upload, Stream stream)
     {
+        var idStr = upload.OwnerId.ToString();
         var tagging = Tagging.GetObjectTags(new Dictionary<string, string>() { { "name", upload.OriginalFileName } });
-        var name = upload.UploadId.ToString();
-        var args = ImageObjectArgs<PutObjectArgs>(upload.OwnerId, upload.DirectoryPrefix, name).WithTagging(tagging);
+        var p = PrefixImage(idStr, upload.StoredName());
+        var args = ObjectArgs<PutObjectArgs>(p).WithTagging(tagging);
         if (stream.CanSeek) // assume this supports reading length as well
         {
             args = args
@@ -100,52 +96,68 @@ public partial class MinioImageClient
         }
         else
         {
-            var tmp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tmp", name);
+            var tmp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tmp", p);
             Directory.CreateDirectory(tmp);
             await using var fs = File.OpenWrite(tmp);
             await stream.CopyToAsync(fs).ConfigureAwait(false);
             args = args.WithFileName(tmp);
         }
         
-        await Minio.PutObjectAsync(args).ConfigureAwait(false);
+        await _minio.PutObjectAsync(args).ConfigureAwait(false);
 
-        return await GetPresignedImageUri(upload.OwnerId, name, upload.DirectoryPrefix) ?? throw new InvalidOperationException("Failed to get uri");
+        return await GetPresignedImageUri(idStr, upload.StoredName()) ?? throw new InvalidOperationException("Failed to get uri");
     }
 
-    /*
     public async Task<string> PutArchive(Guid userId, Guid archiveId, IEnumerable<(string OriginalName, string StoredName)> items, CancellationToken token = default)
     {
+        var userIdStr = userId.ToString();
         var idStr = archiveId.ToString();
-        var tmp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tmp", idStr);
-        Directory.CreateDirectory(tmp);
+        var tmp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, idStr);
         await using (var zipStream = File.OpenWrite(tmp))
         {
             using var z = new ZipArchive(zipStream, ZipArchiveMode.Create);
             foreach (var (og, store) in items)
             {
-                var s = await GetData(store, token).ConfigureAwait(false);
+                var s = await GetImageData(userIdStr, store, token).ConfigureAwait(false);
                 var file = z.CreateEntry(og, CompressionLevel.Optimal);
                 await using var fileStream = file.Open();
                 await s.CopyToAsync(fileStream, token).ConfigureAwait(false);
                 await fileStream.FlushAsync(token).ConfigureAwait(false);
             }
-            await zipStream.FlushAsync(token).ConfigureAwait(false);
-
-            var path = Path.Combine(userId.ToString(), ) // TODO publish back to Upload table?
-            var args = ArchiveObjectArgs<PutObjectArgs>(userId.ToString(), idStr);
         }
-        
+
+        var resourcePath = PrefixArchive(userIdStr, idStr);
+        var args = ObjectArgs<PutObjectArgs>(resourcePath).WithFileName(tmp);
+        await _minio.PutObjectAsync(args, token).ConfigureAwait(false);
+        File.Delete(tmp);
+        return resourcePath;
     }
-    */
+
+    public Task<string> GetPresigned(string path)
+    {
+        var presignedGetArgs = ObjectArgs<PresignedGetObjectArgs>(path).WithExpiry(_defaultLinkExpiryTimeSeconds);
+        return _minio.PresignedGetObjectAsync(presignedGetArgs);
+    }
+    public Task<string> GetArchivePresigned(Guid userId, Guid archiveId)
+    {
+        var p = PrefixArchive(userId.ToString(), archiveId.ToString());
+        return GetPresigned(p);
+    }
+
+    public Task DeleteArchive(Guid userId, Guid archiveId)
+    {
+        var p = PrefixArchive(userId.ToString(), archiveId.ToString());
+        var args = ObjectArgs<RemoveObjectArgs>(p);
+        return _minio.RemoveObjectAsync(args);
+    }
     
-    /*
     private async Task<(ObjectStat Stats, Memory<byte> Data)> GetImageBytes(string name)
     {
         MemoryStream? ms = null;
         try
         {
             ms = new MemoryStream();
-            var stats = await Minio.GetObjectAsync(
+            var stats = await _minio.GetObjectAsync(
                     ObjectArgs<GetObjectArgs>(name)
                     .WithCallbackStream(buf => buf.CopyTo(ms))
             ).ConfigureAwait(false);
@@ -157,15 +169,14 @@ public partial class MinioImageClient
                 await ms.DisposeAsync().ConfigureAwait(false);
         }
     }
-    */
     
-    
-    public async Task CreateThumbnails(Guid id, string name, string? prefix = null, CancellationToken token = default)
+    public async Task CreateThumbnails(Guid id, string name, CancellationToken token = default)
     {
-        var widths = await GetMissingThumbnailWidths(id, name, prefix, token).ConfigureAwait(false);
+        var ids = id.ToString();
+        var widths = await GetMissingThumbnailWidths(ids, name, token).ConfigureAwait(false);
         if (widths.Count == 0)
             return;
-        await MakeThumbnails(id, name, widths, prefix, token).ConfigureAwait(false);
+        await MakeThumbnails(ids, name, widths, token).ConfigureAwait(false);
     }
     
     #region Thumbnail Names
@@ -178,9 +189,9 @@ public partial class MinioImageClient
 
     #region GetData
 
-    private Task<Stream> GetImageData(Guid id, string name, string? prefix = null,  CancellationToken token = default)
+    private Task<Stream> GetImageData(ReadOnlySpan<char> id, ReadOnlySpan<char> name,  CancellationToken token = default)
     {
-        var path = PrefixImage(id, prefix, name);
+        var path = PrefixImage(id, name);
         return GetData(path, token);
     }
     
@@ -194,7 +205,7 @@ public partial class MinioImageClient
                 // ReSharper disable once AccessToDisposedClosure
                 // Disable warning - closure will be invoked during the using statement @ the GetObjectAsync call
                 .WithCallbackStream(async (s, t) => await s.CopyToAsync(ms, t).ConfigureAwait(false));
-            var obj = await Minio.GetObjectAsync(getArgs, token).ConfigureAwait(false);
+            var obj = await _minio.GetObjectAsync(getArgs, token).ConfigureAwait(false);
             ms.Seek(0, SeekOrigin.Begin);
             return ms;
         }
@@ -209,16 +220,17 @@ public partial class MinioImageClient
     #endregion
 
     #region MakeThumbnails
-    private async Task<IList<int>> GetMissingThumbnailWidths(Guid id, string name, string? prefix = null, CancellationToken token = default)
+    private async Task<IList<int>> GetMissingThumbnailWidths(string id, string name, CancellationToken token = default)
     {
         List<int>? missing = null;
-        foreach (var w in ThumbnailWidths)
+        foreach (var w in _thumbnailWidths)
         {
             try
             {
                 var tname = AppendThumbnailTag(name, w);
-                var existsArgs = ThumbnailObjectArgs<StatObjectArgs>(id, prefix, tname);
-                var exists = await Minio.StatObjectAsync(existsArgs, token).ConfigureAwait(false);
+                var p = PrefixThumbnail(id, tname);
+                var existsArgs = ObjectArgs<StatObjectArgs>(p);
+                var exists = await _minio.StatObjectAsync(existsArgs, token).ConfigureAwait(false);
                 // If no exception, the object already exists & does not need to be created
                 continue;
             }
@@ -233,9 +245,9 @@ public partial class MinioImageClient
 
         return missing ?? (IList<int>)Array.Empty<int>();
     }
-    private async Task MakeThumbnails(Guid id, string name, IEnumerable<int> widths, string? prefix = null, CancellationToken token = default)
+    private async Task MakeThumbnails(string id, string name, IEnumerable<int> widths, CancellationToken token = default)
     {
-        await using var data = await GetImageData(id, name, prefix, token).ConfigureAwait(false); 
+        await using var data = await GetImageData(id, name, token).ConfigureAwait(false); 
         using var img = await Image.LoadAsync(data, token).ConfigureAwait(false );
         var hwr = (float)img.Height / img.Width;
         foreach (var w in widths)
@@ -247,22 +259,29 @@ public partial class MinioImageClient
             await resize.SaveAsWebpAsync(ms, cancellationToken: token).ConfigureAwait(false);
             await ms.FlushAsync(token).ConfigureAwait(false);
             _ = ms.Seek(0, SeekOrigin.Begin);
-            var args = ThumbnailObjectArgs<PutObjectArgs>(id, prefix, tname)
+            var p = PrefixThumbnail(id, tname);
+            var args = ObjectArgs<PutObjectArgs>(p)
                 .WithObjectSize(ms.Length)
                 .WithStreamData(ms)
                 .WithContentType("image/webp");
-            await Minio.PutObjectAsync(args, token).ConfigureAwait(false);
+            await _minio.PutObjectAsync(args, token).ConfigureAwait(false);
         }
     }
     #endregion
 
+    private IEnumerable<Item> ListItems(string path)
+    {
+        var args = Args<ListObjectsArgs>().WithPrefix(path);
+        return _minio.ListObjectsAsync(args).ToEnumerable();
+    }
+    
     private void FillSubdirs(DirectoryTreeItem d)
     {
         // Locate immediate subdirs
         var prefix = d.Key();
         var args = Args<ListObjectsArgs>().WithPrefix(prefix);
         var fileCount = 0;
-        var sDirs = Minio.ListObjectsAsync(args).ToEnumerable();
+        var sDirs = _minio.ListObjectsAsync(args).ToEnumerable();
 
         // For each subdir
         foreach (var sDir in sDirs)
@@ -285,7 +304,7 @@ public partial class MinioImageClient
     [GeneratedRegex("(.*)-w(\\d+)", RegexOptions.IgnoreCase, "en-US")]
     private static partial Regex ThumbnailName();
     
-    private int GetClosestThumbnailWidth(int width) => ThumbnailWidths.MinBy(i => Math.Abs(i - width));
+    private int GetClosestThumbnailWidth(int width) => _thumbnailWidths.MinBy(i => Math.Abs(i - width));
     
     internal static int ParseWidthFromThumbnailName(string name)
     {
@@ -296,33 +315,24 @@ public partial class MinioImageClient
         return int.Parse(span);
     }
 
+    #region Paths
 
-    #region Minio args
-
-    private static string Prefix(Guid id, string basePrefix, string? prefix, string? name)
+    private static string Prefix(ReadOnlySpan<char> id, ReadOnlySpan<char> basePrefix, ReadOnlySpan<char> name)
     {
-        prefix = prefix is not null && !prefix.EndsWith(Path.DirectorySeparatorChar)
-            ? prefix + Path.DirectorySeparatorChar
-            : prefix;
-        return name switch
-        {
-            null when prefix is not null => prefix.EndsWith(Path.DirectorySeparatorChar)
-                ? Path.Combine(id.ToString(), basePrefix, prefix)
-                : Path.Combine(id.ToString(), basePrefix, prefix) + Path.DirectorySeparatorChar,
-            null => Path.Combine(id.ToString(), basePrefix) + Path.DirectorySeparatorChar,
-            not null when prefix is not null => Path.Combine(id.ToString(), basePrefix, prefix, name),
-            not null => Path.Combine(id.ToString(), basePrefix, name)
-        };
+        var sb = new StringBuilder();
+        sb.Append(id);
+        sb.Append(Path.DirectorySeparatorChar);
+        sb.Append(basePrefix);
+        if (!Path.EndsInDirectorySeparator(basePrefix))
+            sb.Append(Path.DirectorySeparatorChar);
+        sb.Append(name);
+        return sb.ToString();
     }
-
-    private static string PrefixImage(Guid id, string? prefix, string? name) => Prefix(id, ImagePrefix, prefix, name);
-    private static string PrefixThumbnail(Guid id, string? prefix, string? name) => Prefix(id, ThumbnailPrefix, prefix, name);
-    private static string PrefixArchive(Guid id, string? prefix, string? name) => Prefix(id, ArchivePrefix, prefix, name);
+    private static string PrefixImage(ReadOnlySpan<char> id, ReadOnlySpan<char> name) => Prefix(id, ImagePrefix, name);
+    private static string PrefixThumbnail(ReadOnlySpan<char> id, ReadOnlySpan<char> name) => Prefix(id, ThumbnailPrefix, name);
+    private static string PrefixArchive(ReadOnlySpan<char> id, ReadOnlySpan<char> name) => Prefix(id, ArchivePrefix, name);
     private T Args<T>() where T : BucketArgs<T>, new() => new T().WithBucket(_bucket);
     private T ObjectArgs<T>(string obj) where T : ObjectArgs<T>, new() => Args<T>().WithObject(obj);
-    private T ImageObjectArgs<T>(Guid id, string? prefix, string obj) where T : ObjectArgs<T>, new() => ObjectArgs<T>(PrefixImage(id, prefix, obj));
-    private T ArchiveObjectArgs<T>(Guid id, string? prefix, string obj) where T : ObjectArgs<T>, new() => ObjectArgs<T>(PrefixArchive(id, prefix, obj));
-    private T ThumbnailObjectArgs<T>(Guid id, string? prefix, string obj) where T : ObjectArgs<T>, new() => ObjectArgs<T>(PrefixThumbnail(id, prefix, obj));
     
     #endregion
 }

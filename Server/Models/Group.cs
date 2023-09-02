@@ -4,7 +4,7 @@ using Viewer.Shared.Users;
 
 namespace Viewer.Server.Models;
 
-public class UserGroup
+public class Group
 {
     /// <summary>
     /// The group's unique ID
@@ -26,7 +26,8 @@ public class UserGroup
     /// All albums available to the group
     /// </summary>
     public virtual required ICollection<Album> Albums { get; init; } = new List<Album>();
-    public static implicit operator UserGroupDto(UserGroup group)
+    
+    public static implicit operator UserGroupDto(Group group)
     {
         return new UserGroupDto
         {
@@ -41,7 +42,7 @@ public record GroupMember
     /// <summary>
     /// The member's user ID
     /// </summary>
-    [Key, ForeignKey(nameof(User)), DatabaseGenerated(DatabaseGeneratedOption.None)] 
+    [Key, ForeignKey(nameof(User)), DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
     public required Guid Id { get; init; }
     
     /// <summary>

@@ -1,4 +1,3 @@
 ### TODO
-- Gallery large image not matching -- is this because I'm returning just the short name?
-- Make usernames unique in db/register form
-- Return jwt from register / auto login
+- Upload returned preview click does not load image
+- Update jwt when user info changes

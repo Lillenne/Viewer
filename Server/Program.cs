@@ -9,7 +9,9 @@ using Viewer.Server.Services;
 using Viewer.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Viewer.Server;
 using Viewer.Server.Configuration;
+using Viewer.Server.Models;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.Email;
 using Viewer.Server.Services.ImageServices;
@@ -33,8 +35,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumers(Assembly.GetEntryAssembly());
+    x.AddDelayedMessageScheduler();
+    
     x.UsingInMemory((ctx, cfg) =>
     {
+        cfg.UseDelayedMessageScheduler();
         cfg.ConfigureEndpoints(ctx);
     });
 });
@@ -77,7 +82,8 @@ builder.Services
 
 builder.Services.AddAuthorization(o =>
 {
-    o.AddPolicy("upload-privilege", policy => policy.RequireAuthenticatedUser().RequireRole("upload"));
+    o.AddPolicy(Policies.UploadPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(Roles.Upload));
+    o.AddPolicy(Policies.DownloadPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(Roles.Download));
     o.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme).RequireAuthenticatedUser().Build();
 });
 
@@ -127,6 +133,11 @@ using (var scope = app.Services.CreateScope())
 {
     using var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     db.Database.EnsureCreated();
+    var usr = await db.GetUserByUsername("lillenne");
+    var r = db.Role.First(r => r.RoleName == "upload");
+    usr.Roles.Add(r);
+    db.Users.Update(usr);
+    db.SaveChanges();
 }
 
 app.UseHttpsRedirection();
