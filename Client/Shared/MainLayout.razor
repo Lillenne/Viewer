@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Security.Claims
+@inherits LayoutComponentBase
 @inject IAuthClient Auth
 @inject NavigationManager Nav
 @inject IImageClient Client
@@ -14,30 +15,51 @@
 
 <MudLayout>
     <MudAppBar>
-        <MudIconButton Icon="@Icons.Material.Filled.Home"
+        <MudButton Class="mr-3" EndIcon="@Icons.Material.Filled.Home"
+                   Color="Color.Inherit"
+                   @onclick="@ToHome">
+            Home
+        </MudButton>
+        <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.Login"
                        Color="Color.Inherit"
-                       @onclick="@ToHome"/>
-        <MudIconButton Icon="@Icons.Material.Filled.Login"
-                       Color="Color.Inherit"
-                       @onclick="@ToLogin"/>
-        <MudIconButton Icon="@Icons.Material.Filled.AppRegistration"
-                       Color="Color.Inherit"
-                       @onclick="@ToRegistration"/>
-        <MudIconButton Icon="@Icons.Material.Filled.UploadFile"
-                       Color="Color.Inherit"
-                       @onclick="@ToUpload"/>
-        <MudIconButton Icon="@Icons.Material.Filled.Face"
-                       Color="Color.Inherit"
-                       @onclick="@ToFriends"/>
+                       @onclick="@ToLogin">
+            Login
+        </MudButton>
+        <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.AppRegistration"
+                   Color="Color.Inherit"
+                   @onclick="@ToRegistration">
+            Register
+        </MudButton>
+        <AuthorizeView>
+            <Authorized>
+                @if (_canUpload)
+                {
+                    <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.UploadFile"
+                               Color="Color.Inherit"
+                               @onclick="@ToUpload">
+                        Upload
+                    </MudButton>
+                }
+            </Authorized>
+        </AuthorizeView>
+        <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.Face"
+                   Color="Color.Inherit"
+                   @onclick="@ToFriends">
+            Friends
+        </MudButton>
         <MudSpacer/>
         <MudText Typo="Typo.h6">Family photos</MudText>
         <MudSpacer/>
-        <MudIconButton Icon="@Icons.Material.Filled.Logout"
-                       Color="Color.Inherit"
-                       @onclick="@Auth.SignOut" />
-        <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart"
-                       Color="Color.Inherit"
-                       @onclick="@ToggleCart"/>
+        <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.Logout"
+                   Color="Color.Inherit"
+                   @onclick="@Auth.SignOut">
+            Logout
+        </MudButton>
+        <MudButton Class="ml-3" EndIcon="@Icons.Material.Filled.ShoppingCart"
+                   Color="Color.Inherit"
+                   @onclick="@ToggleCart">
+            Cart
+        </MudButton>
     </MudAppBar>
     
 
@@ -54,7 +76,13 @@
 </MudLayout>
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        _canUpload = (await Auth.WhoAmI().ConfigureAwait(false))?.Roles.Contains(Roles.Upload) ?? false;
+    }
+
     private bool _cartOpen = true;
+    private bool _canUpload;
 
     private void ToggleCart() => _cartOpen = !_cartOpen;
     private void ToHome() => Nav.NavigateTo(Routes.Home);
