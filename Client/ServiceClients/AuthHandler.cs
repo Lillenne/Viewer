@@ -25,7 +25,7 @@ public class AuthHandler : DelegatingHandler
         {
             var jwt = token.Value.Token;
             var dec = new JwtSecurityTokenHandler().ReadJwtToken(token.Value.Token);
-            bool needsRefresh = dec.ValidTo < DateTime.UtcNow + TimeSpan.FromSeconds(20);
+            bool needsRefresh = dec.ValidTo < DateTime.UtcNow + TimeSpan.FromSeconds(10);
             if (needsRefresh)
             {
                 var client = _client.CreateClient("direct");

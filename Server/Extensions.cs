@@ -7,6 +7,7 @@ public static class Policies
 {
     public const string UploadPolicy = "upload-privilege";
     public const string DownloadPolicy = "download-privilege";
+    public const string AuthenticatedPolicy = "authenticated";
 }
 
 public static class Extensions

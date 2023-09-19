@@ -27,11 +27,12 @@ public class UserClient
         var response = await _client.GetAsync(ApiRoutes.Relations.GetFriends).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            // TODO
-            throw new NotImplementedException();
+            return new GetFriendsResponse() { Friends = new List<Identity>() };
         }
-
-        return await response.Content.ReadFromJsonAsync<GetFriendsResponse>().ConfigureAwait(false) ?? throw new NotImplementedException();
+        else
+        {
+            return await response.Content.ReadFromJsonAsync<GetFriendsResponse>().ConfigureAwait(false) ?? new GetFriendsResponse() { Friends = new List<Identity>()};
+        }
     }
 
     public async Task<GetFriendsResponse> SuggestFriends(int n)

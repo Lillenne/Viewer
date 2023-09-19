@@ -65,7 +65,7 @@ builder.Services
     })
     .AddJwtBearer(o =>
     {
-        o.SaveToken = true;
+        o.SaveToken = true; // TODO ?
         o.TokenValidationParameters = new TokenValidationParameters()
         {
             IssuerSigningKey = new SymmetricSecurityKey(
@@ -94,6 +94,7 @@ builder.Services.AddAuthorization(o =>
 {
     o.AddPolicy(Policies.UploadPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(Roles.Upload));
     o.AddPolicy(Policies.DownloadPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(Roles.Download));
+    o.AddPolicy(Policies.AuthenticatedPolicy, policy => policy.RequireAuthenticatedUser());
     o.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme).RequireAuthenticatedUser().Build();
 });
 

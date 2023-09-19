@@ -1,8 +1,11 @@
 using System.Security.Claims;
 using System.Text.Json;
 using CommunityToolkit.Diagnostics;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Viewer.Server.Services;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.ImageServices;
@@ -10,8 +13,30 @@ using Viewer.Shared;
 
 namespace Viewer.Server.Controllers;
 
+public class RedirectOnPolicyFail : ActionFilterAttribute
+{
+    private readonly string _policy;
+    private readonly string _path;
+
+    public RedirectOnPolicyFail(string policy, string path)
+    {
+        _policy = policy;
+        _path = path;
+    }
+
+    public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        var auth = context.HttpContext.RequestServices.GetService<IAuthorizationService>();
+        if (auth is null || string.IsNullOrEmpty(_policy))
+            return;
+        var authed = await auth.AuthorizeAsync(context.HttpContext.User, _policy).ConfigureAwait(false);
+        if (!authed.Succeeded)
+            context.Result = new RedirectResult(_path);
+        await base.OnActionExecutionAsync(context, next).ConfigureAwait(false);
+    }
+}
+
 [ApiController]
-[Authorize]
 [Route("api/[controller]")]
 public class ImageAccessController : ControllerBase
 {
@@ -30,11 +55,17 @@ public class ImageAccessController : ControllerBase
         _users = users;
     }
 
-    #region Post
-    
+    #region GetImages
+
     [HttpPost]
-    public async Task<ActionResult<GetImagesResponse>> GetImages(GetImagesRequest request)
+    public async Task<ActionResult<GetImagesResponse>> GetImages(GetImagesRequest request, [FromServices] IAuthenticationService auth)
     {
+        var isAuthorized = await auth.AuthenticateAsync(HttpContext, JwtBearerDefaults.AuthenticationScheme).ConfigureAwait(false);
+        if (!isAuthorized.Succeeded)
+        {
+            _logger.LogInformation("Received sample GetImagesRequest");
+            return await GetRandomImages(request).ConfigureAwait(false);
+        }
         try
         {
             _logger.LogInformation("Received get request for {RequestSourceId}/{RequestDirectory} at w{RequestWidth} from {FindFirst}", request.SourceId, request.Directory, request.Width, HttpContext.User.FindFirst(ClaimTypes.NameIdentifier));
@@ -47,7 +78,54 @@ public class ImageAccessController : ControllerBase
             return StatusCode(500);
         }
     }
+
+    [HttpPost("samples")]
+    public Task<ActionResult<GetImagesResponse>> GetRandomImages(GetImagesRequest request)
+    {
+        var n = (int)new Random().NextInt64(10, 50);
+        var w = request.Width > 0 ? request.Width : 255;
+        var rand = new Random();
+        return Task.FromResult(new ActionResult<GetImagesResponse>(new GetImagesResponse
+        {
+            Images = Enumerable.Range(0, n).Select(_  => new NamedUri
+            {
+                Name = "Sample image",
+                Id = Guid.NewGuid(),
+                Uri = $"https://picsum.photos/{w}.webp?random={rand.NextInt64(1,int.MaxValue)}"
+            }).ToList()
+        }));
+    }
     
+    [HttpPost("image")]
+    public async Task<ActionResult<NamedUri>> Image(GetImageRequest request, [FromServices] IAuthenticationService auth)
+    {
+        var isAuthorized = await auth.AuthenticateAsync(HttpContext, JwtBearerDefaults.AuthenticationScheme).ConfigureAwait(false);
+        if (!isAuthorized.Succeeded)
+        {
+            return await SampleImage(request).ConfigureAwait(false);
+        }
+        try
+        {
+            return new ActionResult<NamedUri>(await _service.GetImageId(request).ConfigureAwait(false));
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in post files");
+            return StatusCode(500);
+        }
+    }
+
+    [HttpPost("image-sample")]
+    public Task<ActionResult<NamedUri>> SampleImage(GetImageRequest request)
+    {
+        var w = request.Width > 0 ? request.Width : 600;
+        return Task.FromResult(new ActionResult<NamedUri>(new NamedUri("A sample image", request.Id, $"https://picsum.photos/{w}.webp")));
+    }
+    
+    #endregion
+
+    #region Upload/Download
+
     [HttpPost("upload")]
     [Authorize(Policy = Policies.UploadPolicy)]
     public async Task<ActionResult<GetImagesResponse>> PostFiles([FromForm] string header, [FromForm] IList<IFormFile> files)
@@ -101,26 +179,13 @@ public class ImageAccessController : ControllerBase
             return StatusCode(500);
         }
     }
-
-    [HttpPost("image")]
-    public async Task<ActionResult<NamedUri>> Image(GetImageRequest request)
-    {
-        try
-        {
-            return new ActionResult<NamedUri>(await _service.GetImageId(request).ConfigureAwait(false));
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Error in post files");
-            return StatusCode(500);
-        }
-    }
-
+    
     #endregion
 
-    #region Get
+    #region Dirs
     
     [HttpGet("dirs")]
+    [RedirectOnPolicyFail(Policies.AuthenticatedPolicy, "dir-samples")]
     public async Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> GetDirectories()
     {
         try
@@ -135,6 +200,22 @@ public class ImageAccessController : ControllerBase
             _logger.LogError(e, "Error getting directories");
             return StatusCode(500);
         }
+    }
+
+    [HttpGet("dir-samples")]
+    public Task<ActionResult<IReadOnlyList<DirectoryTreeItem>>> GetDirectorySamples()
+    {
+        var children = new List<DirectoryTreeItem>();
+        var parent = new DirectoryTreeItem("Root", null, children) { Source = Guid.NewGuid() };
+        parent.FileCount = 1;
+        var child = new DirectoryTreeItem("Sample1", parent, new List<DirectoryTreeItem>());
+        child.FileCount = 1;
+        children.Add(child);
+        return Task.FromResult(new ActionResult<IReadOnlyList<DirectoryTreeItem>>(
+            new List<DirectoryTreeItem>
+            {
+                parent
+            }));
     }
 
     #endregion

@@ -4,52 +4,60 @@
 @using System.Collections.ObjectModel
 <MudText Typo="Typo.h6">Friend management</MudText>
 <MudButton></MudButton>
-@if (_friends is null)
-{
-    <MudText>Getting friend data, hold tight...</MudText>
-    <MudProgressCircular Indeterminate="true" />
-}
-else
-{
-    <MudText>My friends</MudText>
-    @foreach (var friend in _friends)
-    {
-        <MudCard>
-            <MudCardContent>
-                <MudText>@friend.Name</MudText>
-            </MudCardContent>
-            <MudCardActions>
-                @* TODO link to their pictures *@
-                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Unfriend(friend))">Unfriend</MudButton>
-            </MudCardActions>
-        </MudCard>
-    }
-}
-
-<MudButton Variant="Variant.Filled" OnClick="ToggleFindingNewFriends">Find new friends</MudButton>
-
-@if (_findingNewFriends)
-{
-    @if (_suggested is null)
-    {
-        <MudText>Unexpected error, please try again later</MudText>
-    }
-    else
-    {
-        @foreach (var suggestion in _suggested)
+<AuthorizeView>
+    <Authorized>
+        @if (_friends is null)
         {
-            <MudCard>
-                <MudCardContent>
-                    <MudText>@suggestion.Name</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => AddFriend(suggestion))">Add friend</MudButton>
-                </MudCardActions>
-            </MudCard>
+            <MudText>Getting friend data, hold tight...</MudText>
+            <MudProgressCircular Indeterminate="true" />
         }
-    }
-}
+        else
+        {
+            <MudText>My friends</MudText>
+            @foreach (var friend in _friends)
+            {
+                <MudCard>
+                    <MudCardContent>
+                        <MudText>@friend.Name</MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        @* TODO link to their pictures *@
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Unfriend(friend))">Unfriend</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            }
+        }
 
+        <MudButton Variant="Variant.Filled" OnClick="ToggleFindingNewFriends">Find new friends</MudButton>
+
+        @if (_findingNewFriends)
+        {
+            @if (_suggested is null)
+            {
+                <MudText>Unexpected error, please try again later</MudText>
+            }
+            else
+            {
+                @foreach (var suggestion in _suggested)
+                {
+                    <MudCard>
+                        <MudCardContent>
+                            <MudText>@suggestion.Name</MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => AddFriend(suggestion))">Add friend</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                }
+            }
+        }
+    </Authorized>
+    <NotAuthorized>
+        <MudText Typo="Typo.h6">
+            Sign up to add friends!
+        </MudText>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     protected override async Task OnInitializedAsync()
