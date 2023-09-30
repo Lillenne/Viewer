@@ -89,15 +89,10 @@ namespace Viewer.Server.Migrations
 
             modelBuilder.Entity("Viewer.Server.Models.Role", b =>
                 {
-                    b.Property<Guid>("RoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
                     b.Property<string>("RoleName")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("RoleId");
+                    b.HasKey("RoleName");
 
                     b.ToTable("Role");
                 });
@@ -194,8 +189,8 @@ namespace Viewer.Server.Migrations
 
             modelBuilder.Entity("Viewer.Server.Models.UserRole", b =>
                 {
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("RoleId")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

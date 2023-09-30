@@ -8,14 +8,13 @@ public class UserRole
     [ForeignKey(nameof(UserId))] public required Guid UserId { get; init; }
     public virtual User User { get; set; } = null!;
     
-    [ForeignKey(nameof(Role))] public required Guid RoleId { get; init; }
+    [ForeignKey(nameof(Role))] public required string RoleId { get; init; }
     public virtual Role Role { get; set; } = null!;
 }
 
 public class Role
 {
-    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public Guid RoleId { get; init; }
+    [Key]
     public required string RoleName { get; init; } = string.Empty;
     public virtual ICollection<User> RoleMembers { get; set; } = new List<User>();
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

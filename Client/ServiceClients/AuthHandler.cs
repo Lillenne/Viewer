@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Viewer.Shared;
 
 namespace Viewer.Client.ServiceClients;
 

@@ -10,5 +10,6 @@ public interface IAuthClient
     Task<bool> ChangePassword(ChangePasswordRequest request);
     Task<bool> Register(UserRegistration info);
     Task<bool> GetIsLoggedIn();
+    Task<bool> RequestPermissions(string permission);
     Task SignOut();
 }

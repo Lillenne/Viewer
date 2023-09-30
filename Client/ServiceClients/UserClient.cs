@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Viewer.Shared;
 using Viewer.Shared.Users;
 
 namespace Viewer.Client.ServiceClients;

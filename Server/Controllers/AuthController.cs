@@ -84,4 +84,20 @@ public class AuthController : ControllerBase
             return BadRequest(e.Message);
         }
     }
+
+    [HttpPost(ApiRoutes.Auth.Privileges)]
+    [Authorize]
+    public async Task<IActionResult> RequestPrivileges(string privilege)
+    {
+        try
+        {
+            await _authService.RequestPrivileges(HttpContext.User, privilege).ConfigureAwait(false);
+            //return res ? Ok() : Forbid();
+            return Ok();
+        }
+        catch (Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
 }

@@ -41,6 +41,16 @@ public class AuthService : IAuthService
         return _tokenService.CreateToken(new ClaimsIdentity(principal.Claims));
     }
 
+    public async Task RequestPrivileges(ClaimsPrincipal principal, string privilege)
+    {
+        var id = _parser.ParseClaims(principal);
+        if (id.Roles.Any(r => r.Equals(privilege, StringComparison.InvariantCultureIgnoreCase)))
+            return;
+        var user = await _userRepo.GetUser(id.Id).ConfigureAwait(false);
+        user.Roles.Add(new Role { RoleName = Roles.Upload });
+        await _userRepo.UpdateUser(user).ConfigureAwait(false);
+    }
+
     public async Task<AuthToken> Login(UserLogin userLogin)
     {
         if (string.IsNullOrEmpty(userLogin.Email))

@@ -35,6 +35,14 @@
                         Upload
                     </MudButton>
                 }
+                else
+                {
+                    <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.UploadFile"
+                               Color="Color.Inherit"
+                               @onclick="@RequestUploadPermissions">
+                        Request Permissions
+                    </MudButton>
+                }
             </Authorized>
         </AuthorizeView>
         <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.Face"
@@ -93,6 +101,7 @@
 
     private bool _cartOpen = true;
     private bool _canUpload;
+    private bool _requestingUploadPrivilege;
     private UserDto? _me;
 
     private void ToggleCart() => _cartOpen = !_cartOpen;
@@ -101,6 +110,19 @@
     private void ToRegistration() => Nav.NavigateTo(Routes.Register);
     private void ToUpload() => Nav.NavigateTo(Routes.Upload);
     private void ToFriends() => Nav.NavigateTo(Routes.Friends);
+
+    private async Task? RequestUploadPermissions()
+    {
+        _requestingUploadPrivilege = true;
+        try
+        {
+            _canUpload = await Auth.RequestPermissions(Roles.Upload);
+        }
+        finally
+        {
+            _requestingUploadPrivilege = false;
+        }
+    }
     
     private async Task? Download(Cart arg)
     {

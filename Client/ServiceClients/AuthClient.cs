@@ -88,6 +88,11 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     private const string WhoAmIStorageKey = "whoami";
 
     public async Task<bool> GetIsLoggedIn() => await _storage.GetToken().ConfigureAwait(false) is not null;
+    public async Task<bool> RequestPermissions(string permission)
+    {
+        var response = await _client.PostAsync(ApiRoutes.Auth.Privileges, new StringContent(permission));
+        return response.IsSuccessStatusCode;
+    }
 
     public async Task SignOut()
     {

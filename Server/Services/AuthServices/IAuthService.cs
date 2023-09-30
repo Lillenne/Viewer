@@ -11,4 +11,5 @@ public interface IAuthService
     Task<AuthToken> Register(UserRegistration info);
     Task<UserDto?> WhoAmI(ClaimsPrincipal principal);
     Task<string> Refresh(string oldToken, string refreshToken);
+    Task RequestPrivileges(ClaimsPrincipal principal, string privilege);
 }
