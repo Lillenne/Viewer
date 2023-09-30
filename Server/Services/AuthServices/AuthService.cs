@@ -27,9 +27,9 @@ public class AuthService : IAuthService
         _tokenOptions = options.Value;
     }
 
-    public async Task<string> Refresh(string token, string refreshToken)
+    public async Task<string> Refresh(string oldToken, string refreshToken)
     {
-        var principal = _tokenService.GetClaims(token);
+        var principal = _tokenService.GetClaims(oldToken);
         var usr = _parser.ParseClaims(principal);
         var info = await _tokenRepository.GetTokenInfoAsync(usr.Id).ConfigureAwait(false);
         if (info is null)
@@ -53,13 +53,7 @@ public class AuthService : IAuthService
 
         var claims = _parser.ToClaims(user);
         var token = _tokenService.CreateToken(new ClaimsIdentity(claims));
-        var refresh = _tokenService.CreateRefreshToken();
-        await _tokenRepository.UpdateTokenInfoAsync(new Tokens
-        {
-            UserId = user.Id,
-            RefreshToken = refresh,
-            RefreshTokenExpiry = DateTime.UtcNow + _tokenOptions.LifeSpan
-        });
+        var refresh = await CreateRefreshToken(user.Id).ConfigureAwait(false);
         return new AuthToken(token, refresh);
     }
 
@@ -74,7 +68,7 @@ public class AuthService : IAuthService
         await _userRepo.UpdateUser(user);
     }
 
-    public async Task Register(UserRegistration info)
+    public async Task<AuthToken> Register(UserRegistration info)
     {
         var (hash, salt) = CreatePasswordHash(info.Password);
         var user = new User
@@ -87,7 +81,12 @@ public class AuthService : IAuthService
             PasswordSalt = salt,
             Id = Guid.NewGuid(),
         };
-        await _userRepo.AddUser(user);
+        await _userRepo.AddUser(user).ConfigureAwait(false);
+        var claims = _parser.ToClaims(user);
+        var token = _tokenService.CreateToken(new ClaimsIdentity(claims));
+        // TODO use autogen id?
+        var refresh = await CreateRefreshToken(user.Id).ConfigureAwait(false);
+        return new AuthToken(token, refresh);
     }
 
     public Task<UserDto?> WhoAmI(ClaimsPrincipal principal) => Task.FromResult<UserDto?>(_parser.ParseClaims(principal));
@@ -104,4 +103,17 @@ public class AuthService : IAuthService
         var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(pwd));
         return computedHash.SequenceEqual(hash);
     }
+    
+    private async Task<string> CreateRefreshToken(Guid userId)
+    {
+        var refresh = _tokenService.CreateRefreshToken();
+        await _tokenRepository.UpdateTokenInfoAsync(new Tokens
+        {
+            UserId = userId,
+            RefreshToken = refresh,
+            RefreshTokenExpiry = DateTime.UtcNow + _tokenOptions.LifeSpan
+        });
+        return refresh;
+    }
+
 }

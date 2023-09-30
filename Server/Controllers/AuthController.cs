@@ -73,12 +73,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(UserRegistration request)
+    public async Task<ActionResult<AuthToken>> Register(UserRegistration request)
     {
         try
         {
-            await _authService.Register(request).ConfigureAwait(false);
-            return Ok();
+            return await _authService.Register(request).ConfigureAwait(false);
         }
         catch (Exception e)
         {

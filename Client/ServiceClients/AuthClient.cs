@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using Viewer.Shared;
 using Viewer.Shared.Users;
@@ -64,7 +63,13 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
         var response = await _client
             .PostAsJsonAsync(ApiRoutes.Auth.Register, info)
             .ConfigureAwait(false);
-        return response.IsSuccessStatusCode;
+        if (!response.IsSuccessStatusCode)
+            return false;
+        var tokens = await response.Content.ReadFromJsonAsync<AuthToken>().ConfigureAwait(false);
+        await _storage.StoreToken(tokens.Token).ConfigureAwait(false);
+        await _storage.StoreRefreshToken(tokens.RefreshToken!).ConfigureAwait(false);
+        NotifyAuthStateChanged();
+        return true;
     }
     
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()

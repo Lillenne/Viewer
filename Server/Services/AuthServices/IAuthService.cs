@@ -8,7 +8,7 @@ public interface IAuthService
 {
     Task<AuthToken> Login(UserLogin userLogin);
     Task ChangePassword(ChangePasswordRequest request);
-    Task Register(UserRegistration info);
+    Task<AuthToken> Register(UserRegistration info);
     Task<UserDto?> WhoAmI(ClaimsPrincipal principal);
-    Task<string> Refresh(string token, string refreshToken);
+    Task<string> Refresh(string oldToken, string refreshToken);
 }
