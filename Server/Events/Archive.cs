@@ -12,7 +12,7 @@ public class ArchiveCreatedConsumer : IConsumer<ArchiveCreated>
     public Task Consume(ConsumeContext<ArchiveCreated> context)
     {
         var del = new DeleteArchive(context.Message.OwnerId, context.Message.ArchiveId);
-        var when = DateTime.Now.Add(TimeSpan.FromSeconds(10));
+        var when = DateTime.Now.Add(TimeSpan.FromMinutes(10));
         context.SchedulePublish(when, del);
         return Task.CompletedTask;
     }

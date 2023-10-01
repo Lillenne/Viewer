@@ -17,14 +17,12 @@ public class RelationsController : ControllerBase
     private readonly ILogger<RelationsController> _logger;
     private readonly IUserRepository _users;
     private readonly IClaimsParser _identifier;
-    private readonly IFriendSuggestor _suggestor;
 
-    public RelationsController(ILogger<RelationsController> logger, IUserRepository users, IClaimsParser identifier, IFriendSuggestor suggestor)
+    public RelationsController(ILogger<RelationsController> logger, IUserRepository users, IClaimsParser identifier)
     {
         _logger = logger;
         _users = users;
         _identifier = identifier;
-        _suggestor = suggestor;
     }
 
     [HttpGet("friends")]
@@ -37,14 +35,14 @@ public class RelationsController : ControllerBase
     }
     
     [HttpGet("findfriends")]
-    public async Task<ActionResult<GetFriendsResponse>> SuggestFriends([FromQuery] int n)
+    public async Task<ActionResult<GetFriendsResponse>> SuggestFriends([FromQuery] int n, [FromServices] IFriendSuggestor suggestor)
     {
         n = int.Max(1, n);
         var userDto = _identifier.ParseClaims(HttpContext.User);
         _logger.LogInformation("Suggesting friends for {Id}", userDto.Id);
         // Suggest all other users for now. Can add service, etc. later
         return new GetFriendsResponse()
-            { Friends = _suggestor.SuggestFriends(new UserInfo() { UserId = userDto.Id }, n).ToList() };
+            { Friends = suggestor.SuggestFriends(new UserInfo() { UserId = userDto.Id }, n).ToList() };
     }
 
     [HttpPost("addfriend")]

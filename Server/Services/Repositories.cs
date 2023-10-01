@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server.Models;
 
@@ -22,3 +25,13 @@ public interface ITokenRepository
     public Task<Tokens?> GetTokenInfoAsync(Guid userId);
     public Task UpdateTokenInfoAsync(Tokens info);
 }
+
+/*public interface IRequestRepository
+{
+    // Repository or saga?
+    // Could do 3 part saga
+    // 1. Created
+    // 2. Pending
+    // 3. Granted
+    public 
+}*/

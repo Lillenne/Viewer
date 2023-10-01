@@ -10,7 +10,7 @@ public static class ApiRoutes
         public const string ChangePassword = $"{Base}change-pwd";
         public const string WhoAmI = $"{Base}whoami";
         public const string Refresh = $"{Base}refresh";
-        public const string Privileges = $"{Base}privileges";
+        public static string RequestPrivilege(string privilege) => $"{Base}privileges/{privilege}";
     }
 
     public static class ImageAccess

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server;
 using Viewer.Server.Configuration;
-using Viewer.Server.Models;
+using Viewer.Server.Events;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.Email;
 using Viewer.Server.Services.ImageServices;
@@ -36,6 +36,8 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddConsumers(Assembly.GetEntryAssembly());
     x.AddDelayedMessageScheduler();
+    x.AddSagaStateMachine<PrivilegeRequestStateMachine, PrivilegeRequestState>()
+        .InMemoryRepository();
     
     x.UsingInMemory((ctx, cfg) =>
     {
@@ -50,6 +52,11 @@ builder.Services.AddOptions<MinioOptions>()
     .ValidateDataAnnotations();
 builder.Services.AddTransient<MinioImageClient>();
 builder.Services.AddScoped<IImageService, MinioImageService>();
+
+// Admin
+builder.Services.AddOptions<AdminOptions>()
+    .Bind(builder.Configuration.GetSection("Admin"))
+    .ValidateDataAnnotations();
 
 // Jwt
 builder.Services.AddScoped<IClaimsParser,JwtClaimsParser>();
@@ -75,7 +82,7 @@ builder.Services
             ValidAudience = config["JwtSettings:Audience"],
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidateLifetime = false, // TODO
+            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             NameClaimType = JwtRegisteredClaimNames.Name,
         };
@@ -99,13 +106,15 @@ builder.Services.AddAuthorization(o =>
 });
 
 builder.Services.AddCors(
-    o =>
-        o.AddPolicy(
-            "local",
-            //policy => policy.WithOrigins("http://localhost*").AllowAnyMethod().AllowAnyHeader()
-            policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()
-        )
-);
+        o =>
+        {
+            o.AddPolicy(
+                "local",
+                policy => policy.WithOrigins("localhost").AllowAnyMethod().AllowAnyHeader());
+            o.AddPolicy(
+                "pixalyzer",
+                policy => policy.WithOrigins("https://*.pixalyzer.com").AllowAnyMethod().AllowAnyHeader());
+        });
 
 // Databases
 builder.Services.AddDbContext<DataContext>(
@@ -146,6 +155,18 @@ using (var scope = app.Services.CreateScope())
 {
     using var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     db.Database.EnsureCreated();
+    /*
+    var u1 = db.Users.Include(f => f.Friends).Single(u => u.UserName == "asdf");
+    var u2 = db.Users.Single(u => u.UserName == "asdfasdf");
+    u1.Friends.Add(u2);
+    db.Users.Update(u1);
+    db.SaveChanges();
+    var f = db.Users.Include(f => f.Friends).ToList().Select(u =>
+    {
+        var fs = u.Friends.Select(f => f.UserName).ToList();
+        return new { u.UserName, fs };
+    }).ToList();
+*/
 }
 
 app.UseHttpsRedirection();

@@ -1,6 +1,5 @@
 using MassTransit;
 using MimeKit;
-using Viewer.Server.Models;
 using Viewer.Server.Services;
 using Viewer.Server.Services.Email;
 

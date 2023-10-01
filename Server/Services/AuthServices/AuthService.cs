@@ -27,7 +27,7 @@ public class AuthService : IAuthService
         _tokenOptions = options.Value;
     }
 
-    public async Task<string> Refresh(string oldToken, string refreshToken)
+    public async Task<string> Refresh(string oldToken, string refreshToken) // TODO people to update table
     {
         var principal = _tokenService.GetClaims(oldToken);
         var usr = _parser.ParseClaims(principal);
@@ -38,17 +38,9 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Refresh token expired");
         if (info.RefreshToken != refreshToken)
             throw new ArgumentException("Refresh token mismatch");
-        return _tokenService.CreateToken(new ClaimsIdentity(principal.Claims));
-    }
-
-    public async Task RequestPrivileges(ClaimsPrincipal principal, string privilege)
-    {
-        var id = _parser.ParseClaims(principal);
-        if (id.Roles.Any(r => r.Equals(privilege, StringComparison.InvariantCultureIgnoreCase)))
-            return;
-        var user = await _userRepo.GetUser(id.Id).ConfigureAwait(false);
-        user.Roles.Add(new Role { RoleName = Roles.Upload });
-        await _userRepo.UpdateUser(user).ConfigureAwait(false);
+        var updated = await _userRepo.GetUser(usr.Id).ConfigureAwait(false);
+        var id = new ClaimsIdentity(_parser.ToClaims(updated));
+        return _tokenService.CreateToken(id);
     }
 
     public async Task<AuthToken> Login(UserLogin userLogin)

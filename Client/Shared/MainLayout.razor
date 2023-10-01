@@ -35,13 +35,18 @@
                         Upload
                     </MudButton>
                 }
-                else
+                else if (!_requestingUploadPrivilege)
                 {
                     <MudButton Class="mx-3" EndIcon="@Icons.Material.Filled.UploadFile"
                                Color="Color.Inherit"
                                @onclick="@RequestUploadPermissions">
                         Request Permissions
                     </MudButton>
+                }
+                else
+                {
+                    <MudText>Permission pending</MudText>
+                    <MudProgressCircular Indeterminate="true" />
                 }
             </Authorized>
         </AuthorizeView>
@@ -113,15 +118,10 @@
 
     private async Task? RequestUploadPermissions()
     {
+        if (_requestingUploadPrivilege)
+            return;
         _requestingUploadPrivilege = true;
-        try
-        {
-            _canUpload = await Auth.RequestPermissions(Roles.Upload);
-        }
-        finally
-        {
-            _requestingUploadPrivilege = false;
-        }
+        _canUpload = await Auth.RequestPermissions(Roles.Upload);
     }
     
     private async Task? Download(Cart arg)

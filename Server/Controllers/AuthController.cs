@@ -1,5 +1,7 @@
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Viewer.Server.Events;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Shared;
 using Viewer.Shared.Users;
@@ -85,15 +87,20 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost(ApiRoutes.Auth.Privileges)]
+    [HttpPost("privileges/{privilege}")]
     [Authorize]
-    public async Task<IActionResult> RequestPrivileges(string privilege)
+    public async Task<IActionResult> RequestPrivileges(string privilege, [FromServices] IPublishEndpoint endpt)
     {
         try
         {
-            await _authService.RequestPrivileges(HttpContext.User, privilege).ConfigureAwait(false);
-            //return res ? Ok() : Forbid();
-            return Ok();
+            var usr = await _authService.WhoAmI(HttpContext.User).ConfigureAwait(false);
+            if (usr is null)
+                return Unauthorized();
+            if (usr.Roles.Contains(privilege))
+                return BadRequest();
+            var id = Guid.NewGuid();
+            await endpt.Publish(new PrivilegeRequested(id, usr.Id, privilege)).ConfigureAwait(false);
+            return Created(id.ToString(), id);
         }
         catch (Exception e)
         {
