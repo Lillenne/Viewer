@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using System.Security.Claims;
 using Viewer.Server.Models;
 using Viewer.Shared.Users;
-using User = Viewer.Server.Models.User;
 
 namespace Viewer.Server.Services.AuthServices;
 

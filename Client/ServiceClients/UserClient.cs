@@ -15,12 +15,12 @@ public class UserClient
 
     public async Task AddFriend(Guid id)
     {
-        _ = await _client.PostAsJsonAsync(ApiRoutes.Relations.AddFriend, id).ConfigureAwait(false);
+        _ = await _client.PostAsync(ApiRoutes.Relations.AddFriend(id), null).ConfigureAwait(false);
     }
 
     public async Task Unfriend(Guid id)
     {
-        _ = await _client.PostAsJsonAsync(ApiRoutes.Relations.Unfriend, id).ConfigureAwait(false);
+        _ = await _client.PostAsync(ApiRoutes.Relations.Unfriend(id), null).ConfigureAwait(false);
     }
 
     public async Task<GetFriendsResponse> GetFriendData()

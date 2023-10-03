@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Viewer.Server.Models;
 using Viewer.Server.Services;
 using Viewer.Server.Services.AuthServices;
 using Viewer.Server.Services.ImageServices;
@@ -43,10 +44,10 @@ public class ImageAccessController : ControllerBase
     private readonly ILogger<ImageAccessController> _logger;
     private readonly IImageService _service;
     private readonly IClaimsParser _identifier;
-    private readonly IUserRepository _users;
+    private readonly IUserRelationsRepository _users;
 
     public ImageAccessController(ILogger<ImageAccessController> logger, IImageService service, IClaimsParser identifier // TODO remove parser?
-        , IUserRepository users
+        , IUserRelationsRepository users
     )
     {
         _logger = logger;
@@ -191,7 +192,16 @@ public class ImageAccessController : ControllerBase
         try
         {
             var user = _identifier.ParseClaims(HttpContext.User);
-            var usr = await _users.GetUser(user.Id).ConfigureAwait(false);
+            UserRelations usr;
+
+            try
+            {
+                usr = await _users.GetUserRelations(user.Id).ConfigureAwait(false);
+            }
+            catch
+            {
+                return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(Array.Empty<DirectoryTreeItem>());
+            }
             var dirs = await _service.GetDirectories(usr.ViewableIdentities()).ConfigureAwait(false);
             return new ActionResult<IReadOnlyList<DirectoryTreeItem>>(dirs);
         }

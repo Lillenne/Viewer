@@ -1,16 +1,17 @@
+using Viewer.Server.Models;
 using Viewer.Shared.Users;
 
 namespace Viewer.Server.Services.UserServices;
 
 public interface IFriendSuggestor
 {
-    IEnumerable<Identity> SuggestFriends(UserInfo info, int n);
+    IEnumerable<Identity> SuggestFriends(UserSuggestionInputs info, int n);
 }
 
 /// <summary>
 /// Class to represent the interests of a user for the purpose of finding new friends, etc.
 /// </summary>
-public class UserInfo
+public class UserSuggestionInputs
 {
     public required Guid UserId { get; init; }
     // Fill out more fields as needed
@@ -25,7 +26,7 @@ public class FirstInDbSuggestor : IFriendSuggestor
         _context = context;
     }
 
-    public IEnumerable<Identity> SuggestFriends(UserInfo info, int n)
+    public IEnumerable<Identity> SuggestFriends(UserSuggestionInputs info, int n)
     {
         return _context.Users
             .Take(n)

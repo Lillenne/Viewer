@@ -46,7 +46,6 @@
                 else
                 {
                     <MudText>Permission pending</MudText>
-                    <MudProgressCircular Indeterminate="true" />
                 }
             </Authorized>
         </AuthorizeView>
@@ -121,7 +120,7 @@
         if (_requestingUploadPrivilege)
             return;
         _requestingUploadPrivilege = true;
-        _canUpload = await Auth.RequestPermissions(Roles.Upload);
+        await Auth.RequestPermissions(Roles.Upload);
     }
     
     private async Task? Download(Cart arg)

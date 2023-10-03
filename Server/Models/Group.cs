@@ -1,8 +1,55 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Viewer.Shared.Users;
+using Microsoft.EntityFrameworkCore;
 
 namespace Viewer.Server.Models;
+
+public record UserRelations
+{
+    [Key, ForeignKey(nameof(User))]
+    public Guid UserId { get; set; }
+
+    public virtual User? User { get; set; } 
+    
+    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
+    public virtual ICollection<FriendRequest> FriendRequests { get; set; } = new List<FriendRequest>();
+    
+    [NotMapped]
+    public ICollection<UserInfo> Friends
+    {
+        get
+        {
+            if (_friends is null)
+            {
+                _friends = FriendRequests.Where(f => f.RequestStatus == RequestStatus.Approved).Select(f => (UserInfo)f.Target!).ToList();
+            }
+
+            return _friends;
+        }
+        set => _friends = value;
+    }
+
+    [NotMapped]
+    private ICollection<UserInfo>? _friends;
+}
+
+[PrimaryKey(nameof(SourceId), nameof(TargetId))]
+public record FriendRequest
+{
+    [ForeignKey(nameof(Source))] public Guid SourceId { get; set; }
+    public virtual User? Source { get; set; }
+    
+    [ForeignKey(nameof(Target))] public Guid TargetId { get; set; }
+    public virtual User? Target { get; set; }
+    public RequestStatus RequestStatus { get; set; }
+}
+
+public enum RequestStatus
+{
+    Pending = 0,
+    Approved,
+    Denied
+}
 
 public class Group
 {
@@ -15,7 +62,7 @@ public class Group
     /// <summary>
     /// The group's name
     /// </summary>
-    public required string Name { get; init; }
+    public required string GroupName { get; init; }
     
     /// <summary>
     /// All members of the group and their roles
@@ -26,15 +73,6 @@ public class Group
     /// All albums available to the group
     /// </summary>
     public virtual required ICollection<Album> Albums { get; init; } = new List<Album>();
-    
-    public static implicit operator UserGroupDto(Group group)
-    {
-        return new UserGroupDto
-        {
-            Id = group.Id,
-            Name = group.Name,
-        };
-    }
 }
 
 public record GroupMember
@@ -43,7 +81,7 @@ public record GroupMember
     /// The member's user ID
     /// </summary>
     [Key, ForeignKey(nameof(User)), DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
-    public required Guid Id { get; init; }
+    public Guid Id { get; set; }
     
     /// <summary>
     /// The member

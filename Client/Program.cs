@@ -14,10 +14,14 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services
-    .AddHttpClient("api", c => c.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    //.AddHttpClient("api", c => c.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpClient("api", c => c.BaseAddress = new Uri(
+        builder.Configuration.GetValue<string>("BaseUrl") ?? builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler(sp => sp.GetRequiredService<AuthHandler>());
 builder.Services
-    .AddHttpClient("direct", c => c.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
+    //.AddHttpClient("direct", c => c.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
+    .AddHttpClient("direct", c => c.BaseAddress = new Uri(
+        builder.Configuration.GetValue<string>("BaseUrl") ?? builder.HostEnvironment.BaseAddress));
 builder.Services.AddFeatureManagement(builder.Configuration.GetSection("FeatureManagement"));
 builder.Services.AddMudServices();
 builder.Services.AddTransient<TokenHandler>();

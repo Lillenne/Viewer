@@ -4,6 +4,15 @@ using Viewer.Shared.Users;
 
 namespace Viewer.Server.Models;
 
+public record UserUploads
+{
+    [Key, ForeignKey(nameof(User))]
+    public Guid UserId { get; set; }
+    public virtual User? User { get; set; }
+    public virtual ICollection<Upload> Uploads { get; set; } = new List<Upload>();
+    public virtual ICollection<Album> Albums { get; set; } = new List<Album>();
+}
+
 public class Upload
 {
     /// <summary>

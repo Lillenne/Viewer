@@ -6,7 +6,6 @@ using Viewer.Server.Configuration;
 using Viewer.Server.Models;
 using Viewer.Shared;
 using Viewer.Shared.Users;
-using User = Viewer.Server.Models.User;
 
 namespace Viewer.Server.Services.AuthServices;
 
@@ -50,9 +49,8 @@ public class AuthService : IAuthService
         if (string.IsNullOrEmpty(userLogin.Password))
             throw new ArgumentException("Password required");
         var user = await _userRepo.GetUser(userLogin.Email).ConfigureAwait(false);
-        if (!VerifyPassword(userLogin.Password, user.PasswordHash, user.PasswordSalt))
+        if (!VerifyPassword(userLogin.Password, user.Password.Hash, user.Password.Salt))
             throw new ArgumentException("Invalid password");
-
         var claims = _parser.ToClaims(user);
         var token = _tokenService.CreateToken(new ClaimsIdentity(claims));
         var refresh = await CreateRefreshToken(user.Id).ConfigureAwait(false);
@@ -61,13 +59,15 @@ public class AuthService : IAuthService
 
     public async Task ChangePassword(ChangePasswordRequest request)
     {
-        var user = await _userRepo.GetUser(request.UserId).ConfigureAwait(false);
-        if (!VerifyPassword(request.OldPassword, user.PasswordHash, user.PasswordSalt))
+        var user = await _userRepo.GetPassword(request.UserId).ConfigureAwait(false);
+        if (!VerifyPassword(request.OldPassword, user.Hash, user.Salt))
             throw new ArgumentException("Invalid password");
         var (hash, salt) = CreatePasswordHash(request.NewPassword);
-        user.PasswordHash = hash;
-        user.PasswordSalt = salt;
-        await _userRepo.UpdateUser(user);
+        await _userRepo.SetPassword(request.UserId, new UserPassword
+        {
+            Hash = hash,
+            Salt = salt
+        }).ConfigureAwait(false);
     }
 
     public async Task<AuthToken> Register(UserRegistration info)
@@ -79,14 +79,12 @@ public class AuthService : IAuthService
             FirstName = info.FirstName,
             LastName = info.LastName,
             Email = info.Email,
-            PasswordHash = hash,
-            PasswordSalt = salt,
+            Password = new UserPassword(hash, salt),
             Id = Guid.NewGuid(),
         };
         await _userRepo.AddUser(user).ConfigureAwait(false);
         var claims = _parser.ToClaims(user);
         var token = _tokenService.CreateToken(new ClaimsIdentity(claims));
-        // TODO use autogen id?
         var refresh = await CreateRefreshToken(user.Id).ConfigureAwait(false);
         return new AuthToken(token, refresh);
     }

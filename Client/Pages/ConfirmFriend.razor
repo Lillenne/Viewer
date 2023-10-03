@@ -1,0 +1,18 @@
+@page "/confirm-friend"
+
+@if (Approved)
+{
+    <MudText>Friend confirmed!</MudText>
+}
+else
+{
+    <MudText>We've ignored the request</MudText>
+}
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "a")]
+    public int ApprovalCode { get; set; }
+    
+    public bool Approved => ApprovalCode == 1;
+}

@@ -2,7 +2,16 @@ namespace Viewer.Shared.Users;
 
 public enum Visibility
 {
-    Hidden = 0, // Visible to only the user
-    Private, // Visible to the user and the user's teams
-    Public, // Visible to everyone
+    /// <summary>
+    /// Visible to only the user
+    /// </summary>
+    Hidden = 0, 
+    /// <summary>
+    /// Visible to the user and the user's teams
+    /// </summary>
+    Private,
+    /// <summary>
+    /// Visible to everyone
+    /// </summary>
+    Public,
 }

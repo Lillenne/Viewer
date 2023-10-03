@@ -23,7 +23,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     {
         try
         {
-            var me = await _client.GetFromJsonAsync<UserDto>(ApiRoutes.Auth.WhoAmI).ConfigureAwait(false);
+            var me = await _client.GetFromJsonAsync<UserDto>(ApiRoutes.AuthRoutes.WhoAmI).ConfigureAwait(false);
             return me;
         }
         catch
@@ -35,7 +35,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     public async Task<bool> Login(UserLogin login)
     {
         var response = await _client
-            .PostAsJsonAsync(ApiRoutes.Auth.Login, login)
+            .PostAsJsonAsync(ApiRoutes.AuthRoutes.Login, login)
             .ConfigureAwait(false);
         if (response.StatusCode != HttpStatusCode.OK)
             return false;
@@ -53,7 +53,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     public async Task<bool> ChangePassword(ChangePasswordRequest request)
     {
         var response = await _client
-            .PostAsJsonAsync(ApiRoutes.Auth.ChangePassword, request)
+            .PostAsJsonAsync(ApiRoutes.AuthRoutes.ChangePassword, request)
             .ConfigureAwait(false);
         return response.IsSuccessStatusCode;
     }
@@ -61,7 +61,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     public async Task<bool> Register(UserRegistration info)
     {
         var response = await _client
-            .PostAsJsonAsync(ApiRoutes.Auth.Register, info)
+            .PostAsJsonAsync(ApiRoutes.AuthRoutes.Register, info)
             .ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
             return false;
@@ -90,7 +90,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     public async Task<bool> GetIsLoggedIn() => await _storage.GetToken().ConfigureAwait(false) is not null;
     public async Task<bool> RequestPermissions(string permission)
     {
-        var response = await _client.PostAsync(ApiRoutes.Auth.RequestPrivilege(Roles.Upload), null); // TODO does null work?
+        var response = await _client.PostAsync(ApiRoutes.AuthRoutes.RequestPrivilege(Roles.Upload), null); // TODO does null work?
         return response.IsSuccessStatusCode;
     }
 

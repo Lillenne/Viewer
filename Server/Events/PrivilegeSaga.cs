@@ -1,3 +1,4 @@
+// ReSharper disable ClassNeverInstantiated.Global
 using MassTransit;
 using Microsoft.Extensions.Options;
 using MimeKit;
@@ -6,7 +7,6 @@ using Viewer.Server.Models;
 using Viewer.Server.Services;
 using Viewer.Server.Services.Email;
 
-// ReSharper disable ClassNeverInstantiated.Global
 
 namespace Viewer.Server.Events;
 
@@ -106,7 +106,7 @@ public class RolesUpdatedHandler : IConsumer<PrivilegeRequestSucceeded>
     {
         var usr = await _repo.GetUser(context.Message.UserId).ConfigureAwait(false);
         usr.Roles.Add(new Role() { RoleName = context.Message.Privilege});
-        await _repo.UpdateUser(usr).ConfigureAwait(false);
+        await _repo.UpdateUserInfo(usr).ConfigureAwait(false);
     }
 }
 

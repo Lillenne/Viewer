@@ -122,12 +122,15 @@ builder.Services.AddDbContext<DataContext>(
 builder.Services.AddScoped<DataContext>();
 builder.Services.AddScoped<IUserRepository>(sp => sp.GetRequiredService<DataContext>());
 builder.Services.AddScoped<IUploadRepository>(sp => sp.GetRequiredService<DataContext>());
+builder.Services.AddScoped<IUserRelationsRepository>(sp => sp.GetRequiredService<DataContext>());
 builder.Services.AddScoped<ITokenRepository>(sp => sp.GetRequiredService<DataContext>());
 
 // Misc DI
 builder.Services.AddScoped<Cart>();
 builder.Services.AddTransient<IFriendSuggestor, FirstInDbSuggestor>();
 builder.Services.AddTransient<ITokenService, JwtTokenService>();
+var baseUrl = builder.Configuration.GetValue<string>("Urls")!.Split(';').Last();
+builder.Services.AddTransient<ApiRoutes>(_ => new ApiRoutes(baseUrl));
 
 // Email
 builder.Services.AddTransient<EmailClient>();
@@ -155,18 +158,6 @@ using (var scope = app.Services.CreateScope())
 {
     using var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     db.Database.EnsureCreated();
-    /*
-    var u1 = db.Users.Include(f => f.Friends).Single(u => u.UserName == "asdf");
-    var u2 = db.Users.Single(u => u.UserName == "asdfasdf");
-    u1.Friends.Add(u2);
-    db.Users.Update(u1);
-    db.SaveChanges();
-    var f = db.Users.Include(f => f.Friends).ToList().Select(u =>
-    {
-        var fs = u.Friends.Select(f => f.UserName).ToList();
-        return new { u.UserName, fs };
-    }).ToList();
-*/
 }
 
 app.UseHttpsRedirection();

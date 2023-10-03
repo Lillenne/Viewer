@@ -1,3 +1,6 @@
+using MassTransit;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Viewer.Server.Models;
 using Viewer.Shared.Users;
 
@@ -12,20 +15,16 @@ public static class Policies
 
 public static class Extensions
 {
-    public static IEnumerable<Identity> GroupIdentities(this IEnumerable<Group> groups)
+    public static IEnumerable<string> Names(this IEnumerable<Group> groups)
     {
-        return groups.Select(g => new Identity
-        {
-            Id = g.Id,
-            Name = g.Name
-        });
+        return groups.Select(g => g.GroupName);
     }
     
-    public static IEnumerable<Identity> ViewableIdentities(this User user)
+    public static IEnumerable<Identity> ViewableIdentities(this UserRelations user)
     {
-        yield return new Identity(user.Id, user.UserName);
+        yield return new Identity(user.User.Id, user.User.UserName);
         foreach (var id in user.Groups)
-            yield return new Identity(id.Id, id.Name);
+            yield return new Identity(id.Id, id.GroupName);
         foreach (var id in user.Friends)
             yield return new Identity(id.Id, id.UserName);
     }

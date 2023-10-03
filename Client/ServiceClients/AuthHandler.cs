@@ -9,6 +9,7 @@ public class AuthHandler : DelegatingHandler
 {
     private readonly TokenHandler _ss;
     private readonly IHttpClientFactory _client;
+    private readonly SemaphoreSlim _sem = new(1);
 
     public AuthHandler(TokenHandler handler, IHttpClientFactory client)
     {
@@ -26,15 +27,32 @@ public class AuthHandler : DelegatingHandler
         {
             var jwt = token.Value.Token;
             var dec = new JwtSecurityTokenHandler().ReadJwtToken(token.Value.Token);
-            bool needsRefresh = dec.ValidTo < DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            bool needsRefresh = dec.ValidTo < DateTime.UtcNow + TimeSpan.FromSeconds(10); // Todo is this right time (utc)
+            bool released = false;
             if (needsRefresh)
             {
-                var client = _client.CreateClient("direct");
-                var resp = await client.PostAsJsonAsync(ApiRoutes.Auth.Refresh, token, cancellationToken).ConfigureAwait(false);
-                if (resp.IsSuccessStatusCode)
+                await _sem.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
                 {
-                    jwt = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                    await _ss.StoreToken(jwt, cancellationToken);
+                    if (!needsRefresh)
+                    {
+                        _sem.Release();
+                        released = true;
+                        return await base.SendAsync(request, cancellationToken);
+                    }
+                    var client = _client.CreateClient("direct");
+                    var resp = await client.PostAsJsonAsync(ApiRoutes.AuthRoutes.Refresh, token, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        jwt = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                        await _ss.StoreToken(jwt, cancellationToken);
+                    }
+                }
+                finally
+                {
+                    if (!released)
+                        _sem.Release();
                 }
             }
             
