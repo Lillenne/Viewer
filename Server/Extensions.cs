@@ -24,7 +24,7 @@ public static class Extensions
     {
         yield return new Identity(user.User.Id, user.User.UserName);
         foreach (var id in user.Groups)
-            yield return new Identity(id.Id, id.GroupName);
+            yield return new Identity(id.Id, id.Name);
         foreach (var id in user.Friends)
             yield return new Identity(id.Id, id.UserName);
     }

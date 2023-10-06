@@ -17,7 +17,9 @@ public record User
     public string Email { get; set; } = null!;
     public UserPassword Password { get; set; } = null!;
     public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
-    
+    //public virtual ICollection<FriendRequest> FriendRequests { get; set; } = new List<FriendRequest>();
+    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
+
     public static implicit operator UserDto(User u)
     {
         return new UserDto

@@ -90,7 +90,7 @@ public class AuthClient : AuthenticationStateProvider, IAuthClient
     public async Task<bool> GetIsLoggedIn() => await _storage.GetToken().ConfigureAwait(false) is not null;
     public async Task<bool> RequestPermissions(string permission)
     {
-        var response = await _client.PostAsync(ApiRoutes.AuthRoutes.RequestPrivilege(Roles.Upload), null); // TODO does null work?
+        var response = await _client.PostAsync(ApiRoutes.AuthRoutes.RequestPrivilege(Roles.Upload), null); 
         return response.IsSuccessStatusCode;
     }
 

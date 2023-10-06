@@ -17,7 +17,7 @@ else
             <MudText Align="Align.Center" Typo="Typo.h6">Please log in</MudText>
             <EditForm Model="@Info" OnValidSubmit="@DoLogin" class="align-items-center">
                 <DataAnnotationsValidator/>
-                <MudTextField Variant="Variant.Text" Label="Username" HelperText="Enter your email..." @bind-Value="Info.Email" For="() => Info.Email"/>
+                <MudTextField Variant="Variant.Text" Label="Email" HelperText="Enter your email..." @bind-Value="Info.Email" For="() => Info.Email"/>
                 <PasswordBox For="@(() => Info.Password)" @bind-Value="@Info.Password"/>
                 <MudContainer Class="d-flex flex-row justify-content-evenly mt-4 mb-4">
                     <MudButton Class="d-inline-block" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Reset">Reset</MudButton>

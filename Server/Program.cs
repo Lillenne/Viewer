@@ -129,8 +129,8 @@ builder.Services.AddScoped<ITokenRepository>(sp => sp.GetRequiredService<DataCon
 builder.Services.AddScoped<Cart>();
 builder.Services.AddTransient<IFriendSuggestor, FirstInDbSuggestor>();
 builder.Services.AddTransient<ITokenService, JwtTokenService>();
-var baseUrl = builder.Configuration.GetValue<string>("Urls")!.Split(';').Last();
-builder.Services.AddTransient<ApiRoutes>(_ => new ApiRoutes(baseUrl));
+var baseUrl = builder.Configuration.GetValue<string>("Urls")?.Split(';').Last();
+builder.Services.AddTransient<ApiRoutes>(_ => new ApiRoutes(baseUrl ?? throw new ConfigurationException("Site base url not supplied")));
 
 // Email
 builder.Services.AddTransient<EmailClient>();

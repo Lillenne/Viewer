@@ -36,20 +36,4 @@ public record UserInfo
             Roles = user.Roles.Select(r => r.RoleName).ToList()
         };
     }
-
-    /*
-    public static implicit operator User(UserInfo user)
-    {
-        return new User
-        {
-            Id = user.Id,
-            UserName = user.UserName,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            PhoneNumber = user.PhoneNumber,
-            Email = user.Email,
-            Roles = user.Roles.Select(r => new Role(){ RoleName = r}).ToList()
-        };
-    }
-*/
 }

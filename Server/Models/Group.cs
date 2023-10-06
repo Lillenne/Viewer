@@ -6,42 +6,22 @@ namespace Viewer.Server.Models;
 
 public record UserRelations
 {
-    [Key, ForeignKey(nameof(User))]
-    public Guid UserId { get; set; }
-
-    public virtual User? User { get; set; } 
-    
-    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
-    public virtual ICollection<FriendRequest> FriendRequests { get; set; } = new List<FriendRequest>();
-    
-    [NotMapped]
-    public ICollection<UserInfo> Friends
-    {
-        get
-        {
-            if (_friends is null)
-            {
-                _friends = FriendRequests.Where(f => f.RequestStatus == RequestStatus.Approved).Select(f => (UserInfo)f.Target!).ToList();
-            }
-
-            return _friends;
-        }
-        set => _friends = value;
-    }
-
-    [NotMapped]
-    private ICollection<UserInfo>? _friends;
+    public required UserInfo User { get; set; } 
+    public required IList<Shared.Users.Identity> Groups { get; set; } = new List<Viewer.Shared.Users.Identity>();
+    public required IList<UserInfo> Friends { get; set; } = new List<UserInfo>();
 }
 
-[PrimaryKey(nameof(SourceId), nameof(TargetId))]
+[PrimaryKey(nameof(SourceId), nameof(FriendId))]
 public record FriendRequest
 {
-    [ForeignKey(nameof(Source))] public Guid SourceId { get; set; }
+    [ForeignKey(nameof(Source))] 
+    public Guid SourceId { get; set; }
     public virtual User? Source { get; set; }
-    
-    [ForeignKey(nameof(Target))] public Guid TargetId { get; set; }
-    public virtual User? Target { get; set; }
+    [ForeignKey(nameof(Friend))] 
+    public Guid FriendId { get; set; }
+    public virtual User? Friend { get; set; }
     public RequestStatus RequestStatus { get; set; }
+    public DateTime Since { get; set; }
 }
 
 public enum RequestStatus
@@ -75,18 +55,24 @@ public class Group
     public virtual required ICollection<Album> Albums { get; init; } = new List<Album>();
 }
 
+[PrimaryKey(nameof(Id), nameof(GroupId))]
 public record GroupMember
 {
     /// <summary>
     /// The member's user ID
     /// </summary>
-    [Key, ForeignKey(nameof(User)), DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
+    [ForeignKey(nameof(User))] 
     public Guid Id { get; set; }
     
     /// <summary>
     /// The member
     /// </summary>
     public virtual User? User { get; init; }
+    
+    [ForeignKey(nameof(Group))]
+    public Guid GroupId { get; set; }
+    
+    public Group? Group { get; set; }
     
     /// <summary>
     /// The member's role in the group

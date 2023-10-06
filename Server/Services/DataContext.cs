@@ -1,14 +1,16 @@
 using CommunityToolkit.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Viewer.Server.Models;
+using Viewer.Shared.Users;
 
 namespace Viewer.Server.Services
 {
     public class DataContext : DbContext, IUserRepository, IUploadRepository, ITokenRepository, IUserRelationsRepository
     {
         public DbSet<User> Users => Set<User>();
-        public DbSet<UserRelations> UserRelationsSet => Set<UserRelations>();
-        public DbSet<Group> UserGroups => Set<Group>();
+        public DbSet<Group> Groups => Set<Group>();
+        public DbSet<FriendRequest> Requests => Set<FriendRequest>();
+        public DbSet<Album> Albums => Set<Album>();
         public DbSet<Upload> Uploads => Set<Upload>();
         public DbSet<Role> Role => Set<Role>();
         public DbSet<Tokens> Tokens => Set<Tokens>();
@@ -26,6 +28,10 @@ namespace Viewer.Server.Services
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Group>()
+                .HasMany<User>()
+                .WithMany(u => u.Groups)
+                .UsingEntity<GroupMember>();
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.UserName)
                 .IsUnique();
@@ -63,7 +69,7 @@ namespace Viewer.Server.Services
                 .SetProperty(u => u.FirstName, user.FirstName)
                 .SetProperty(u => u.LastName, user.LastName)
                 .SetProperty(u => u.PhoneNumber, user.PhoneNumber)
-                .SetProperty(u => u.Roles, user.Roles.Select(r => new Role() { RoleName = r })), default);
+                .SetProperty(u => u.Roles, user.Roles.Select(r => new Role() { RoleName = r })));
         }
 
         public Task UpdateUser(User user)
@@ -108,73 +114,82 @@ namespace Viewer.Server.Services
 
         public Task<Group> GetUserGroup(string name)
         {
-            return UserGroups.SingleAsync(g => g.GroupName.Equals(name));
+            return Groups.SingleAsync(g => g.GroupName.Equals(name));
         }
 
-        public async Task ConfirmFriend(Guid userId1, Guid userId2, bool approve)
+        public Task ConfirmFriend(Guid userId1, Guid userId2, bool approve)
         {
-            var u1t = UserRelationsSet.AsTracking().Include(u => u.FriendRequests).SingleAsync(u => u.UserId == userId1);
-            var u2t = UserRelationsSet.AsTracking().Include(u => u.FriendRequests).SingleAsync(u => u.UserId == userId2);
-            var u1 = await u1t;
-            var u2 = await u2t;
             var status = approve ? RequestStatus.Approved : RequestStatus.Denied;
-            u1.FriendRequests.Single(f => f.TargetId == userId2).RequestStatus = status;
-            u2.FriendRequests.Single(f => f.TargetId == userId1).RequestStatus = status;
-            await SaveChangesAsync().ConfigureAwait(false);
+            return Requests.Where(f =>
+                    (f.FriendId == userId1 && f.SourceId == userId2) || f.FriendId == userId2 && f.SourceId == userId1)
+                .ExecuteUpdateAsync(u => u.SetProperty(f => f.RequestStatus, status));
         }
 
         public async Task AddFriend(Guid userId1, Guid userId2)
         {
-            var r1 = new FriendRequest
-            {
-                SourceId = userId1,
-                TargetId = userId2,
-                RequestStatus = RequestStatus.Pending
-            };
-            // TODO show pending friends
-            var r2 = r1 with { SourceId = userId2, TargetId = userId1 };
-            var u1 = await GetAndTrackRelation(userId1).ConfigureAwait(false);
-            var u2 = await GetAndTrackRelation(userId2).ConfigureAwait(false);
-            u1.FriendRequests.Add(r1);
-            u2.FriendRequests.Add(r2);
-            await SaveChangesAsync().ConfigureAwait(false);
+            //var (r1, r2) = await GetOrCreateTrackedRequests(userId1, userId2).ConfigureAwait(false);
+            var (created, _) = await GetOrCreateReq(userId1, userId2).ConfigureAwait(false);
+            if (created)
+                await SaveChangesAsync().ConfigureAwait(false);
         }
 
-        private async Task<UserRelations> GetAndTrackRelation(Guid userId1)
+        private Task<FriendRequest?> GetReq(Guid userId1, Guid userId2) 
+            => Requests.AsTracking()
+                .Where(u => u.SourceId == userId1 && u.FriendId == userId2)
+                .SingleOrDefaultAsync();
+
+        private async Task<(bool Created, FriendRequest Req)> GetOrCreateReq(Guid userId1, Guid userId2)
         {
-            var u1 = (await UserRelationsSet.AsTracking().Include(u => u.FriendRequests).SingleOrDefaultAsync(u => u.UserId == userId1).ConfigureAwait(false));
-            if (u1 is null)
+            var r1 = await GetReq(userId1, userId2).ConfigureAwait(false);
+            var created = r1 is null;
+            if (created)
             {
-                u1 = new UserRelations() { UserId = userId1 };
-                UserRelationsSet.Entry(u1).State = EntityState.Added;
-            }
-            else
-            {
-                UserRelationsSet.Entry(u1).State = EntityState.Modified;
+                r1 = new FriendRequest
+                {
+                    SourceId = userId1,
+                    FriendId = userId2,
+                    RequestStatus = RequestStatus.Pending
+                };
+                Requests.Entry(r1).State = EntityState.Added;
             }
 
-            return u1;
+            return (created, r1!);
         }
 
+        /*
+        private async Task<(FriendRequest Fr1, FriendRequest Fr2)> GetOrCreateTrackedRequests(Guid userId1, Guid userId2)
+        {
+            var r1 = await GetOrCreateReq(userId1, userId2).ConfigureAwait(false);
+            var r2 = await GetOrCreateReq(userId2, userId1).ConfigureAwait(false);
+            return (r1, r2);
+        }
+        */
+        
         public async Task AddUserGroup(Group group)
         {
-            _ = await UserGroups.AddAsync(group).ConfigureAwait(false);
+            _ = await Groups.AddAsync(group).ConfigureAwait(false);
             _ = await SaveChangesAsync().ConfigureAwait(false);
         }
 
-        public Task<UserRelations> GetUserRelations(Guid id)
+        public async Task<UserRelations> GetUserRelations(Guid id)
         {
-            return UserRelationsSet.Include(u => u.FriendRequests).Include(u => u.Groups).SingleAsync(u => u.UserId == id);
+            var u = await Users.Include(u => u.Groups).Where(u => u.Id == id).SingleAsync().ConfigureAwait(false);
+            var res = await Requests.Where(r => r.SourceId == id || r.FriendId == id)
+                .Select(r => r.SourceId == id ? r.FriendId : r.SourceId)
+                .Join(Users.Include(u => u.Groups), r => r, u => u.Id, (guid, user) => (UserInfo)user)
+                .ToListAsync().ConfigureAwait(false);
+            return new UserRelations
+            {
+                User = u,
+                Groups = u.Groups.Select(g => new Identity(g.Id, g.GroupName)).ToList(),
+                Friends = res
+            };
         }
 
         public async Task<UserRelations> GetUserRelations(string email)
         {
             var id = await Users.Where(u => u.Email == email).Select(u => u.Id).SingleAsync().ConfigureAwait(false);
-            return await UserRelationsSet
-                    .Include(u => u.FriendRequests)
-                    .Include(u => u.Groups)
-                    .SingleOrDefaultAsync(u => u.UserId == id)
-                .ConfigureAwait(false) ?? new UserRelations() { UserId = id };
+            return await GetUserRelations(id).ConfigureAwait(false);
         }
 
         public Task<Upload> GetUpload(Guid id)
